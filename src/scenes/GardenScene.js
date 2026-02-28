@@ -173,7 +173,7 @@ export class GardenScene extends Phaser.Scene {
       gfx.strokePath();
     }
 
-    const tools = ['RAKE', 'ROCK', 'SHRUB', 'CLEAR', 'SOUND'];
+    const tools = ['RAKE', 'ROCK', 'SHRUB', 'TEAHOUSE', 'CLEAR', 'SOUND'];
     const btnW = 70;
     const gap = (W - tools.length * btnW) / (tools.length + 1);
 
@@ -262,7 +262,7 @@ export class GardenScene extends Phaser.Scene {
         if (this.rakeGain) {
           this.rakeGain.gain.linearRampToValueAtTime(0.06, this.audioCtx.currentTime + 0.1);
         }
-      } else if (this.activeTool === 'ROCK' || this.activeTool === 'SHRUB') {
+      } else if (this.activeTool === 'ROCK' || this.activeTool === 'SHRUB' || this.activeTool === 'TEAHOUSE') {
         const gx = Math.floor(pointer.x);
         const gy = Math.floor(pointer.y);
         if (this.isInGarden(gx, gy)) {
@@ -339,7 +339,14 @@ export class GardenScene extends Phaser.Scene {
 
   // --- Items (Rocks & Shrubs) ---
   placeItem(type, x, y) {
-    const key = type === 'ROCK' ? this.createRockTexture() : this.createShrubTexture();
+    let key;
+    if (type === 'ROCK') {
+      key = this.createRockTexture();
+    } else if (type === 'SHRUB') {
+      key = this.createShrubTexture();
+    } else if (type === 'TEAHOUSE') {
+      key = this.createTeaHouseTexture();
+    }
     const sprite = this.add.image(x, y, key);
     sprite.setScale(2);
     sprite.setInteractive({ draggable: true, useHandCursor: true });
@@ -417,6 +424,77 @@ export class GardenScene extends Phaser.Scene {
         }
       }
     }
+    ctx.putImageData(imgData, 0, 0);
+    tex.refresh();
+    return id;
+  }
+
+  createTeaHouseTexture() {
+    const id = 'teahouse_' + Date.now() + '_' + Math.random();
+    const w = 24;
+    const h = 20;
+    const tex = this.textures.createCanvas(id, w, h);
+    const ctx = tex.context;
+    const imgData = ctx.createImageData(w, h);
+    const d = imgData.data;
+
+    const cx = w / 2;
+
+    for (let py = 0; py < h; py++) {
+      for (let px = 0; px < w; px++) {
+        const i = (py * w + px) * 4;
+
+        // Roof (top triangular section with overhang)
+        const roofHeight = 10;
+        const roofOverhang = 3;
+        if (py < roofHeight) {
+          const roofWidth = (roofHeight - py) * 1.4 + roofOverhang;
+          if (Math.abs(px - cx) <= roofWidth) {
+            // Dark roof tiles
+            const shade = 0x35 + Math.floor(Math.random() * 15);
+            const tileNoise = Math.sin(px * 2) * 5;
+            d[i] = shade + tileNoise;
+            d[i + 1] = shade - 5 + tileNoise;
+            d[i + 2] = shade - 10;
+            d[i + 3] = 255;
+          }
+        }
+
+        // Main structure (below roof)
+        if (py >= roofHeight && py < h - 2) {
+          const wallWidth = 7;
+          if (Math.abs(px - cx) <= wallWidth) {
+            // Wooden walls with slight texture
+            const baseColor = 0x8b;
+            const noise = Math.floor((Math.random() - 0.5) * 15);
+            d[i] = baseColor + 0x20 + noise;     // warm brown
+            d[i + 1] = baseColor - 0x10 + noise;
+            d[i + 2] = baseColor - 0x40 + noise;
+            d[i + 3] = 255;
+
+            // Door/entrance in center
+            if (Math.abs(px - cx) <= 2 && py >= h - 6) {
+              d[i] = 0x30;
+              d[i + 1] = 0x25;
+              d[i + 2] = 0x20;
+              d[i + 3] = 255;
+            }
+          }
+        }
+
+        // Base/foundation
+        if (py >= h - 2) {
+          const baseWidth = 9;
+          if (Math.abs(px - cx) <= baseWidth) {
+            d[i] = 0x60 + Math.floor(Math.random() * 10);
+            d[i + 1] = 0x58;
+            d[i + 2] = 0x50;
+            d[i + 3] = 255;
+          }
+        }
+      }
+    }
+
     ctx.putImageData(imgData, 0, 0);
     tex.refresh();
     return id;
