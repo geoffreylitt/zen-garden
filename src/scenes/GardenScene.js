@@ -364,7 +364,7 @@ export class GardenScene extends Phaser.Scene {
     const imgData = ctx.createImageData(w, h);
     const d = imgData.data;
 
-    // Simple rock shape: elliptical with shading
+    // Simple rock shape: elliptical with shading (purple)
     const cx = w / 2;
     const cy = h / 2;
     for (let py = 0; py < h; py++) {
@@ -375,10 +375,10 @@ export class GardenScene extends Phaser.Scene {
         if (dist <= 1.0) {
           const i = (py * w + px) * 4;
           const shade = 0x70 + Math.floor((1 - dist) * 0x40) + Math.floor((Math.random() - 0.5) * 20);
-          const warm = Math.floor(Math.random() * 10);
-          d[i] = shade + warm;
-          d[i + 1] = shade;
-          d[i + 2] = shade - 5;
+          const noise = Math.floor(Math.random() * 10);
+          d[i] = shade + 0x30 + noise;     // R - boosted for purple
+          d[i + 1] = shade - 0x30;          // G - reduced for purple
+          d[i + 2] = shade + 0x40 + noise;  // B - boosted for purple
           d[i + 3] = 255;
         }
       }
