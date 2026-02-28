@@ -341,7 +341,7 @@ export class GardenScene extends Phaser.Scene {
   placeItem(type, x, y) {
     const key = type === 'ROCK' ? this.createRockTexture() : this.createShrubTexture();
     const sprite = this.add.image(x, y, key);
-    sprite.setScale(2);
+    sprite.setScale(4);
     sprite.setInteractive({ draggable: true, useHandCursor: true });
 
     this.input.setDraggable(sprite);
@@ -357,8 +357,8 @@ export class GardenScene extends Phaser.Scene {
 
   createRockTexture() {
     const id = 'rock_' + Date.now() + '_' + Math.random();
-    const w = 14;
-    const h = 11;
+    const w = 20;
+    const h = 16;
     const tex = this.textures.createCanvas(id, w, h);
     const ctx = tex.context;
     const imgData = ctx.createImageData(w, h);
@@ -390,8 +390,8 @@ export class GardenScene extends Phaser.Scene {
 
   createShrubTexture() {
     const id = 'shrub_' + Date.now() + '_' + Math.random();
-    const w = 12;
-    const h = 11;
+    const w = 18;
+    const h = 16;
     const tex = this.textures.createCanvas(id, w, h);
     const ctx = tex.context;
     const imgData = ctx.createImageData(w, h);
