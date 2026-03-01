@@ -13,6 +13,7 @@ const RIDGE_COLOR = [0xe8, 0xdc, 0xbc];
 // Rake config
 const TINE_COUNT = 5;
 const TINE_SPACING = 3;
+const WIDE_TINE_COUNT = 9; // 2x width: (9-1)*3 = 24 vs (5-1)*3 = 12
 
 export class GardenScene extends Phaser.Scene {
   constructor() {
@@ -173,7 +174,15 @@ export class GardenScene extends Phaser.Scene {
       gfx.strokePath();
     }
 
-    const tools = ['RAKE', 'ROCK', 'SHRUB', 'CLEAR', 'SOUND'];
+    const tools = ['RAKE', 'WIDE_RAKE', 'ROCK', 'SHRUB', 'CLEAR', 'SOUND'];
+    const toolLabels = {
+      'RAKE': 'Rake',
+      'WIDE_RAKE': 'Wide rake',
+      'ROCK': 'Rock',
+      'SHRUB': 'Shrub',
+      'CLEAR': 'Clear',
+      'SOUND': 'Sound',
+    };
     const btnW = 70;
     const gap = (W - tools.length * btnW) / (tools.length + 1);
 
@@ -188,7 +197,8 @@ export class GardenScene extends Phaser.Scene {
       const isActive = name === this.activeTool;
       this.drawButton(bg, bx, by, btnW, bh, isActive);
 
-      const label = this.add.text(bx + btnW / 2, by + bh / 2, name, {
+      const displayName = toolLabels[name] || name;
+      const label = this.add.text(bx + btnW / 2, by + bh / 2, displayName, {
         fontFamily: 'monospace',
         fontSize: '10px',
         color: isActive ? '#4a3728' : '#c8b898',
@@ -256,7 +266,7 @@ export class GardenScene extends Phaser.Scene {
 
       if (pointer.y >= SAND_H) return; // toolbar area handled by buttons
 
-      if (this.activeTool === 'RAKE') {
+      if (this.activeTool === 'RAKE' || this.activeTool === 'WIDE_RAKE') {
         this.dragging = true;
         this.lastPointer = { x: pointer.x, y: pointer.y };
         if (this.rakeGain) {
@@ -273,9 +283,11 @@ export class GardenScene extends Phaser.Scene {
     });
 
     this.input.on('pointermove', (pointer) => {
-      if (!this.dragging || this.activeTool !== 'RAKE') return;
+      if (!this.dragging) return;
+      if (this.activeTool !== 'RAKE' && this.activeTool !== 'WIDE_RAKE') return;
       if (pointer.y >= SAND_H) return;
-      this.rakeStroke(this.lastPointer, { x: pointer.x, y: pointer.y });
+      const tineCount = this.activeTool === 'WIDE_RAKE' ? WIDE_TINE_COUNT : TINE_COUNT;
+      this.rakeStroke(this.lastPointer, { x: pointer.x, y: pointer.y }, tineCount);
       this.lastPointer = { x: pointer.x, y: pointer.y };
     });
 
@@ -289,7 +301,7 @@ export class GardenScene extends Phaser.Scene {
   }
 
   // --- Raking ---
-  rakeStroke(from, to) {
+  rakeStroke(from, to, tineCount = TINE_COUNT) {
     const dx = to.x - from.x;
     const dy = to.y - from.y;
     const dist = Math.sqrt(dx * dx + dy * dy);
@@ -302,13 +314,13 @@ export class GardenScene extends Phaser.Scene {
     const px = -ny;
     const py = nx;
 
-    const halfWidth = ((TINE_COUNT - 1) * TINE_SPACING) / 2;
+    const halfWidth = ((tineCount - 1) * TINE_SPACING) / 2;
 
     for (let s = 0; s <= steps; s++) {
       const cx = from.x + nx * s;
       const cy = from.y + ny * s;
 
-      for (let t = 0; t < TINE_COUNT; t++) {
+      for (let t = 0; t < tineCount; t++) {
         const offset = -halfWidth + t * TINE_SPACING;
         const tx = Math.floor(cx + px * offset);
         const ty = Math.floor(cy + py * offset);
