@@ -14,6 +14,10 @@ const RIDGE_COLOR = [0xe8, 0xdc, 0xbc];
 const TINE_COUNT = 5;
 const TINE_SPACING = 3;
 
+// Wide rake config (2x as wide)
+const WIDE_TINE_COUNT = 10;
+const WIDE_TINE_SPACING = 3;
+
 export class GardenScene extends Phaser.Scene {
   constructor() {
     super('GardenScene');
@@ -173,8 +177,16 @@ export class GardenScene extends Phaser.Scene {
       gfx.strokePath();
     }
 
-    const tools = ['RAKE', 'ROCK', 'SHRUB', 'CLEAR', 'SOUND'];
-    const btnW = 70;
+    const tools = ['RAKE', 'WIDE_RAKE', 'ROCK', 'SHRUB', 'CLEAR', 'SOUND'];
+    const toolLabels = {
+      'RAKE': 'RAKE',
+      'WIDE_RAKE': 'WIDE',
+      'ROCK': 'ROCK',
+      'SHRUB': 'SHRUB',
+      'CLEAR': 'CLEAR',
+      'SOUND': 'SOUND'
+    };
+    const btnW = 60;
     const gap = (W - tools.length * btnW) / (tools.length + 1);
 
     this.toolButtons = [];
@@ -188,7 +200,7 @@ export class GardenScene extends Phaser.Scene {
       const isActive = name === this.activeTool;
       this.drawButton(bg, bx, by, btnW, bh, isActive);
 
-      const label = this.add.text(bx + btnW / 2, by + bh / 2, name, {
+      const label = this.add.text(bx + btnW / 2, by + bh / 2, toolLabels[name], {
         fontFamily: 'monospace',
         fontSize: '10px',
         color: isActive ? '#4a3728' : '#c8b898',
@@ -256,7 +268,7 @@ export class GardenScene extends Phaser.Scene {
 
       if (pointer.y >= SAND_H) return; // toolbar area handled by buttons
 
-      if (this.activeTool === 'RAKE') {
+      if (this.activeTool === 'RAKE' || this.activeTool === 'WIDE_RAKE') {
         this.dragging = true;
         this.lastPointer = { x: pointer.x, y: pointer.y };
         if (this.rakeGain) {
@@ -273,7 +285,7 @@ export class GardenScene extends Phaser.Scene {
     });
 
     this.input.on('pointermove', (pointer) => {
-      if (!this.dragging || this.activeTool !== 'RAKE') return;
+      if (!this.dragging || (this.activeTool !== 'RAKE' && this.activeTool !== 'WIDE_RAKE')) return;
       if (pointer.y >= SAND_H) return;
       this.rakeStroke(this.lastPointer, { x: pointer.x, y: pointer.y });
       this.lastPointer = { x: pointer.x, y: pointer.y };
@@ -302,14 +314,16 @@ export class GardenScene extends Phaser.Scene {
     const px = -ny;
     const py = nx;
 
-    const halfWidth = ((TINE_COUNT - 1) * TINE_SPACING) / 2;
+    const tineCount = this.activeTool === 'WIDE_RAKE' ? WIDE_TINE_COUNT : TINE_COUNT;
+    const tineSpacing = this.activeTool === 'WIDE_RAKE' ? WIDE_TINE_SPACING : TINE_SPACING;
+    const halfWidth = ((tineCount - 1) * tineSpacing) / 2;
 
     for (let s = 0; s <= steps; s++) {
       const cx = from.x + nx * s;
       const cy = from.y + ny * s;
 
-      for (let t = 0; t < TINE_COUNT; t++) {
-        const offset = -halfWidth + t * TINE_SPACING;
+      for (let t = 0; t < tineCount; t++) {
+        const offset = -halfWidth + t * tineSpacing;
         const tx = Math.floor(cx + px * offset);
         const ty = Math.floor(cy + py * offset);
 
