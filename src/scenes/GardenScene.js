@@ -5,6 +5,11 @@ const H = 360;
 const TOOLBAR_H = 30;
 const SAND_H = H - TOOLBAR_H; // 330
 
+// Sand resolution scale for smoother curves (internal buffer is larger than display)
+const SAND_SCALE = 2;
+const SAND_W_INTERNAL = W * SAND_SCALE;
+const SAND_H_INTERNAL = SAND_H * SAND_SCALE;
+
 // Colors
 const SAND_BASE = [0xd2, 0xc4, 0xa0];
 const GROOVE_COLOR = [0xb0, 0xa0, 0x78];
@@ -20,6 +25,7 @@ export class GardenScene extends Phaser.Scene {
     this.activeTool = 'RAKE';
     this.dragging = false;
     this.lastPointer = null;
+    this.lastRakeDir = null;
     this.gardenMask = null;
     this.sandPixels = null;
     this.sandDirty = false;
@@ -41,14 +47,14 @@ export class GardenScene extends Phaser.Scene {
 
   // --- Garden Boundary ---
   buildGardenMask() {
-    this.gardenMask = new Uint8Array(W * SAND_H);
-    const cx = W / 2;
-    const cy = SAND_H / 2;
-    const rx = W * 0.42;
-    const ry = SAND_H * 0.42;
+    this.gardenMask = new Uint8Array(SAND_W_INTERNAL * SAND_H_INTERNAL);
+    const cx = SAND_W_INTERNAL / 2;
+    const cy = SAND_H_INTERNAL / 2;
+    const rx = SAND_W_INTERNAL * 0.42;
+    const ry = SAND_H_INTERNAL * 0.42;
 
-    for (let y = 0; y < SAND_H; y++) {
-      for (let x = 0; x < W; x++) {
+    for (let y = 0; y < SAND_H_INTERNAL; y++) {
+      for (let x = 0; x < SAND_W_INTERNAL; x++) {
         const angle = Math.atan2(y - cy, x - cx);
         const noise =
           Math.sin(angle * 3) * 0.06 +
@@ -58,30 +64,31 @@ export class GardenScene extends Phaser.Scene {
         const dx = (x - cx) / (rx * (1 + noise));
         const dy = (y - cy) / (ry * (1 + noise));
         const dist = dx * dx + dy * dy;
-        this.gardenMask[y * W + x] = dist <= 1.0 ? 1 : 0;
+        this.gardenMask[y * SAND_W_INTERNAL + x] = dist <= 1.0 ? 1 : 0;
       }
     }
   }
 
   isInGarden(x, y) {
-    if (x < 0 || x >= W || y < 0 || y >= SAND_H) return false;
-    return this.gardenMask[y * W + x] === 1;
+    if (x < 0 || x >= SAND_W_INTERNAL || y < 0 || y >= SAND_H_INTERNAL) return false;
+    return this.gardenMask[y * SAND_W_INTERNAL + x] === 1;
   }
 
   // --- Sand Canvas ---
   createSandCanvas() {
-    this.sandTexture = this.textures.createCanvas('sand', W, SAND_H);
-    this.sandPixels = new Uint8ClampedArray(W * SAND_H * 4);
+    this.sandTexture = this.textures.createCanvas('sand', SAND_W_INTERNAL, SAND_H_INTERNAL);
+    this.sandPixels = new Uint8ClampedArray(SAND_W_INTERNAL * SAND_H_INTERNAL * 4);
     this.fillSand();
     this.syncSandToCanvas();
-    this.add.image(W / 2, SAND_H / 2, 'sand');
+    const sandImage = this.add.image(W / 2, SAND_H / 2, 'sand');
+    sandImage.setDisplaySize(W, SAND_H);
   }
 
   fillSand() {
-    for (let y = 0; y < SAND_H; y++) {
-      for (let x = 0; x < W; x++) {
-        const i = (y * W + x) * 4;
-        if (this.gardenMask[y * W + x]) {
+    for (let y = 0; y < SAND_H_INTERNAL; y++) {
+      for (let x = 0; x < SAND_W_INTERNAL; x++) {
+        const i = (y * SAND_W_INTERNAL + x) * 4;
+        if (this.gardenMask[y * SAND_W_INTERNAL + x]) {
           const noise = (Math.random() - 0.5) * 16;
           this.sandPixels[i] = SAND_BASE[0] + noise;
           this.sandPixels[i + 1] = SAND_BASE[1] + noise;
@@ -101,7 +108,7 @@ export class GardenScene extends Phaser.Scene {
 
   syncSandToCanvas() {
     const ctx = this.sandTexture.context;
-    const imageData = ctx.createImageData(W, SAND_H);
+    const imageData = ctx.createImageData(SAND_W_INTERNAL, SAND_H_INTERNAL);
     imageData.data.set(this.sandPixels);
     ctx.putImageData(imageData, 0, 0);
     this.sandTexture.refresh();
@@ -290,26 +297,51 @@ export class GardenScene extends Phaser.Scene {
 
   // --- Raking ---
   rakeStroke(from, to) {
-    const dx = to.x - from.x;
-    const dy = to.y - from.y;
+    // Scale to internal resolution
+    const fromX = from.x * SAND_SCALE;
+    const fromY = from.y * SAND_SCALE;
+    const toX = to.x * SAND_SCALE;
+    const toY = to.y * SAND_SCALE;
+    
+    const dx = toX - fromX;
+    const dy = toY - fromY;
     const dist = Math.sqrt(dx * dx + dy * dy);
-    if (dist < 1) return;
-
-    const steps = Math.ceil(dist);
-    const nx = dx / dist;
-    const ny = dy / dist;
+    
+    // Always draw at least one point, even for very small movements
+    // This fixes the bug where slow mouse movements don't draw lines
+    const steps = Math.max(1, Math.ceil(dist));
+    
+    // For very small movements, use a default direction or the last known direction
+    let nx, ny;
+    if (dist > 0.001) {
+      nx = dx / dist;
+      ny = dy / dist;
+    } else {
+      // Use last direction if available, otherwise default to horizontal
+      nx = this.lastRakeDir ? this.lastRakeDir.x : 1;
+      ny = this.lastRakeDir ? this.lastRakeDir.y : 0;
+    }
+    
+    // Save direction for future use
+    if (dist > 0.001) {
+      this.lastRakeDir = { x: nx, y: ny };
+    }
+    
     // Perpendicular
     const px = -ny;
     const py = nx;
 
-    const halfWidth = ((TINE_COUNT - 1) * TINE_SPACING) / 2;
+    // Scale tine spacing for internal resolution
+    const scaledTineSpacing = TINE_SPACING * SAND_SCALE;
+    const halfWidth = ((TINE_COUNT - 1) * scaledTineSpacing) / 2;
 
     for (let s = 0; s <= steps; s++) {
-      const cx = from.x + nx * s;
-      const cy = from.y + ny * s;
+      const t_param = dist > 0.001 ? s / steps : 0;
+      const cx = fromX + (toX - fromX) * t_param;
+      const cy = fromY + (toY - fromY) * t_param;
 
       for (let t = 0; t < TINE_COUNT; t++) {
-        const offset = -halfWidth + t * TINE_SPACING;
+        const offset = -halfWidth + t * scaledTineSpacing;
         const tx = Math.floor(cx + px * offset);
         const ty = Math.floor(cy + py * offset);
 
@@ -330,7 +362,7 @@ export class GardenScene extends Phaser.Scene {
   }
 
   setSandPixel(x, y, color) {
-    const i = (y * W + x) * 4;
+    const i = (y * SAND_W_INTERNAL + x) * 4;
     this.sandPixels[i] = color[0];
     this.sandPixels[i + 1] = color[1];
     this.sandPixels[i + 2] = color[2];
