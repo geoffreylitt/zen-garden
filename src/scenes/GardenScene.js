@@ -173,7 +173,7 @@ export class GardenScene extends Phaser.Scene {
       gfx.strokePath();
     }
 
-    const tools = ['RAKE', 'ROCK', 'SHRUB', 'CLEAR', 'SOUND'];
+    const tools = ['RAKE', 'ROCK', 'SHRUB', 'BUDDHA', 'CLEAR', 'SOUND'];
     const btnW = 70;
     const gap = (W - tools.length * btnW) / (tools.length + 1);
 
@@ -262,7 +262,7 @@ export class GardenScene extends Phaser.Scene {
         if (this.rakeGain) {
           this.rakeGain.gain.linearRampToValueAtTime(0.06, this.audioCtx.currentTime + 0.1);
         }
-      } else if (this.activeTool === 'ROCK' || this.activeTool === 'SHRUB') {
+      } else if (this.activeTool === 'ROCK' || this.activeTool === 'SHRUB' || this.activeTool === 'BUDDHA') {
         const gx = Math.floor(pointer.x);
         const gy = Math.floor(pointer.y);
         if (this.isInGarden(gx, gy)) {
@@ -339,7 +339,14 @@ export class GardenScene extends Phaser.Scene {
 
   // --- Items (Rocks & Shrubs) ---
   placeItem(type, x, y) {
-    const key = type === 'ROCK' ? this.createRockTexture() : this.createShrubTexture();
+    let key;
+    if (type === 'ROCK') {
+      key = this.createRockTexture();
+    } else if (type === 'SHRUB') {
+      key = this.createShrubTexture();
+    } else if (type === 'BUDDHA') {
+      key = this.createBuddhaTexture();
+    }
     const sprite = this.add.image(x, y, key);
     sprite.setScale(2);
     sprite.setInteractive({ draggable: true, useHandCursor: true });
@@ -413,6 +420,67 @@ export class GardenScene extends Phaser.Scene {
           d[i] = Math.floor(0x20 * dark);
           d[i + 1] = Math.floor(green * dark);
           d[i + 2] = Math.floor(0x15 * dark);
+          d[i + 3] = 255;
+        }
+      }
+    }
+    ctx.putImageData(imgData, 0, 0);
+    tex.refresh();
+    return id;
+  }
+
+  createBuddhaTexture() {
+    const id = 'buddha_' + Date.now() + '_' + Math.random();
+    const w = 16;
+    const h = 18;
+    const tex = this.textures.createCanvas(id, w, h);
+    const ctx = tex.context;
+    const imgData = ctx.createImageData(w, h);
+    const d = imgData.data;
+
+    const cx = w / 2;
+
+    for (let py = 0; py < h; py++) {
+      for (let px = 0; px < w; px++) {
+        const i = (py * w + px) * 4;
+        let inBuddha = false;
+
+        // Head (top circle) - rows 0-5
+        if (py >= 0 && py < 6) {
+          const headCx = cx;
+          const headCy = 3;
+          const dx = (px - headCx) / 3;
+          const dy = (py - headCy) / 3;
+          if (dx * dx + dy * dy <= 1.0) {
+            inBuddha = true;
+          }
+        }
+
+        // Shoulders and body (rows 5-10)
+        if (py >= 5 && py < 11) {
+          const bodyWidth = 3 + (py - 5) * 0.5;
+          if (Math.abs(px - cx) <= bodyWidth) {
+            inBuddha = true;
+          }
+        }
+
+        // Crossed legs / base (rows 10-17)
+        if (py >= 10 && py < 17) {
+          const baseWidth = 6 - Math.abs(py - 13) * 0.3;
+          if (Math.abs(px - cx) <= baseWidth) {
+            inBuddha = true;
+          }
+        }
+
+        if (inBuddha) {
+          // Stone/bronze color with subtle variation
+          const baseColor = 0x70 + Math.floor(Math.random() * 20);
+          const highlight = py < 6 ? 15 : 0; // lighter head
+          const shadow = py > 12 ? -10 : 0; // darker base
+          const warmth = 8;
+          d[i] = baseColor + highlight + shadow + warmth;
+          d[i + 1] = baseColor + highlight + shadow;
+          d[i + 2] = baseColor + highlight + shadow - 5;
           d[i + 3] = 255;
         }
       }
