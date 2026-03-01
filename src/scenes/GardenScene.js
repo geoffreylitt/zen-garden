@@ -173,7 +173,7 @@ export class GardenScene extends Phaser.Scene {
       gfx.strokePath();
     }
 
-    const tools = ['RAKE', 'ROCK', 'SHRUB', 'CLEAR', 'SOUND'];
+    const tools = ['RAKE', 'ROCK', 'SHRUB', 'LANTERN', 'CLEAR', 'SOUND'];
     const btnW = 70;
     const gap = (W - tools.length * btnW) / (tools.length + 1);
 
@@ -262,7 +262,7 @@ export class GardenScene extends Phaser.Scene {
         if (this.rakeGain) {
           this.rakeGain.gain.linearRampToValueAtTime(0.06, this.audioCtx.currentTime + 0.1);
         }
-      } else if (this.activeTool === 'ROCK' || this.activeTool === 'SHRUB') {
+      } else if (this.activeTool === 'ROCK' || this.activeTool === 'SHRUB' || this.activeTool === 'LANTERN') {
         const gx = Math.floor(pointer.x);
         const gy = Math.floor(pointer.y);
         if (this.isInGarden(gx, gy)) {
@@ -339,7 +339,14 @@ export class GardenScene extends Phaser.Scene {
 
   // --- Items (Rocks & Shrubs) ---
   placeItem(type, x, y) {
-    const key = type === 'ROCK' ? this.createRockTexture() : this.createShrubTexture();
+    let key;
+    if (type === 'ROCK') {
+      key = this.createRockTexture();
+    } else if (type === 'SHRUB') {
+      key = this.createShrubTexture();
+    } else if (type === 'LANTERN') {
+      key = this.createStoneLanternTexture();
+    }
     const sprite = this.add.image(x, y, key);
     sprite.setScale(2);
     sprite.setInteractive({ draggable: true, useHandCursor: true });
@@ -417,6 +424,76 @@ export class GardenScene extends Phaser.Scene {
         }
       }
     }
+    ctx.putImageData(imgData, 0, 0);
+    tex.refresh();
+    return id;
+  }
+
+  createStoneLanternTexture() {
+    const id = 'lantern_' + Date.now() + '_' + Math.random();
+    const w = 11;
+    const h = 20;
+    const tex = this.textures.createCanvas(id, w, h);
+    const ctx = tex.context;
+    const imgData = ctx.createImageData(w, h);
+    const d = imgData.data;
+
+    const cx = Math.floor(w / 2);
+
+    const setPixel = (px, py, r, g, b) => {
+      if (px < 0 || px >= w || py < 0 || py >= h) return;
+      const i = (py * w + px) * 4;
+      const noise = Math.floor((Math.random() - 0.5) * 12);
+      d[i] = r + noise;
+      d[i + 1] = g + noise;
+      d[i + 2] = b + noise;
+      d[i + 3] = 255;
+    };
+
+    const stoneColor = { r: 0x80, g: 0x80, b: 0x78 };
+    const stoneHighlight = { r: 0x98, g: 0x98, b: 0x90 };
+    const stoneShadow = { r: 0x60, g: 0x60, b: 0x58 };
+    const lightColor = { r: 0xf0, g: 0xd8, b: 0x70 };
+
+    // Base (wide platform) - rows 17-19
+    for (let py = 17; py < 20; py++) {
+      for (let px = cx - 4; px <= cx + 4; px++) {
+        const shade = py === 17 ? stoneHighlight : stoneColor;
+        setPixel(px, py, shade.r, shade.g, shade.b);
+      }
+    }
+
+    // Post/shaft - rows 12-16
+    for (let py = 12; py < 17; py++) {
+      for (let px = cx - 1; px <= cx + 1; px++) {
+        const shade = px === cx - 1 ? stoneShadow : (px === cx + 1 ? stoneHighlight : stoneColor);
+        setPixel(px, py, shade.r, shade.g, shade.b);
+      }
+    }
+
+    // Fire box (housing) - rows 6-11
+    for (let py = 6; py < 12; py++) {
+      for (let px = cx - 3; px <= cx + 3; px++) {
+        const isEdge = px === cx - 3 || px === cx + 3 || py === 6 || py === 11;
+        if (isEdge) {
+          const shade = px === cx - 3 ? stoneShadow : (px === cx + 3 ? stoneHighlight : stoneColor);
+          setPixel(px, py, shade.r, shade.g, shade.b);
+        } else {
+          // Light opening
+          setPixel(px, py, lightColor.r, lightColor.g, lightColor.b);
+        }
+      }
+    }
+
+    // Roof/cap - rows 0-5
+    for (let py = 0; py < 6; py++) {
+      const roofWidth = py < 2 ? 2 : (py < 4 ? 3 : 4);
+      for (let px = cx - roofWidth; px <= cx + roofWidth; px++) {
+        const shade = py < 2 ? stoneHighlight : (px <= cx ? stoneShadow : stoneColor);
+        setPixel(px, py, shade.r, shade.g, shade.b);
+      }
+    }
+
     ctx.putImageData(imgData, 0, 0);
     tex.refresh();
     return id;
