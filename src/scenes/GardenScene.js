@@ -3,18 +3,15 @@ import Phaser from 'phaser';
 const W = 480;
 const H = 360;
 const TOOLBAR_H = 30;
-const SAND_H = H - TOOLBAR_H; // 330
+const SAND_H = H - TOOLBAR_H;
 
-// Colors
 const SAND_BASE = [0xd2, 0xc4, 0xa0];
 const GROOVE_COLOR = [0xb0, 0xa0, 0x78];
 const RIDGE_COLOR = [0xe8, 0xdc, 0xbc];
 
-// Rake config
 const TINE_COUNT = 5;
 const TINE_SPACING = 3;
 
-// Pentatonic chime frequencies (C5-D6 range)
 const CHIME_NOTES = [523.25, 587.33, 659.25, 783.99, 880.0, 1046.50, 1174.66];
 
 export class GardenScene extends Phaser.Scene {
@@ -29,21 +26,40 @@ export class GardenScene extends Phaser.Scene {
     this.placedItems = [];
     this.audioStarted = false;
     this.audioCtx = null;
+    this.audioMaster = null;
+    this.fogFilter = null;
     this.rakeGain = null;
     this.chimeTimer = null;
     this.soundDialogEl = null;
 
     this.soundLayers = {
-      wind:    { enabled: true, volume: 0.6, gain: null, maxGain: 0.06 },
-      chimes:  { enabled: true, volume: 0.5, gain: null, maxGain: 0.12 },
-      cicadas: { enabled: true, volume: 0.4, gain: null, maxGain: 0.05 },
+      wind:    { enabled: true,  volume: 0.6, gain: null, maxGain: 0.06 },
+      chimes:  { enabled: true,  volume: 0.5, gain: null, maxGain: 0.12 },
+      cicadas: { enabled: true,  volume: 0.4, gain: null, maxGain: 0.05 },
+      rain:    { enabled: false, volume: 0.5, gain: null, maxGain: 0.08 },
     };
+
+    this.timeOfDay = 6.0;
+    this.dayLength = 720;
+
+    this.fogDensitySetting = 0.5;
+    this.effectiveFogDensity = 0;
+    this.fogWisps = [];
+    this.fogDepthImage = null;
+
+    this.isRaining = false;
+    this.postRainMist = 0;
+    this.rainDrops = [];
+    this.rainGfx = null;
   }
 
   create() {
     this.buildGardenMask();
     this.createSandCanvas();
     this.drawBorder();
+    this.createDayNightOverlay();
+    this.createFogSystem();
+    this.createRainSystem();
     this.createToolbar();
     this.setupInput();
   }
@@ -83,7 +99,8 @@ export class GardenScene extends Phaser.Scene {
     this.sandPixels = new Uint8ClampedArray(W * SAND_H * 4);
     this.fillSand();
     this.syncSandToCanvas();
-    this.add.image(W / 2, SAND_H / 2, 'sand');
+    const sandImg = this.add.image(W / 2, SAND_H / 2, 'sand');
+    sandImg.setDepth(0);
   }
 
   fillSand() {
@@ -119,6 +136,7 @@ export class GardenScene extends Phaser.Scene {
   // --- Border ---
   drawBorder() {
     const gfx = this.add.graphics();
+    gfx.setDepth(1);
 
     const cx = W / 2;
     const cy = SAND_H / 2;
@@ -163,10 +181,286 @@ export class GardenScene extends Phaser.Scene {
     }
   }
 
+  // --- Day/Night Cycle ---
+  createDayNightOverlay() {
+    this.dayNightGfx = this.add.graphics();
+    this.dayNightGfx.setDepth(9);
+  }
+
+  getDayNightTint() {
+    const t = this.timeOfDay;
+    const kf = [
+      { time: 0,  r: 0x10, g: 0x15, b: 0x30, a: 0.35 },
+      { time: 5,  r: 0x10, g: 0x15, b: 0x30, a: 0.30 },
+      { time: 6,  r: 0x40, g: 0x20, b: 0x15, a: 0.18 },
+      { time: 7,  r: 0x30, g: 0x18, b: 0x08, a: 0.10 },
+      { time: 9,  r: 0x20, g: 0x18, b: 0x05, a: 0.04 },
+      { time: 12, r: 0x10, g: 0x10, b: 0x05, a: 0.02 },
+      { time: 15, r: 0x15, g: 0x10, b: 0x05, a: 0.04 },
+      { time: 17, r: 0x30, g: 0x15, b: 0x08, a: 0.10 },
+      { time: 19, r: 0x35, g: 0x15, b: 0x20, a: 0.22 },
+      { time: 21, r: 0x10, g: 0x12, b: 0x28, a: 0.32 },
+      { time: 24, r: 0x10, g: 0x15, b: 0x30, a: 0.35 },
+    ];
+
+    for (let i = 0; i < kf.length - 1; i++) {
+      if (t >= kf[i].time && t < kf[i + 1].time) {
+        const range = kf[i + 1].time - kf[i].time;
+        const f = (t - kf[i].time) / range;
+        const r = Math.floor(kf[i].r + (kf[i + 1].r - kf[i].r) * f);
+        const g = Math.floor(kf[i].g + (kf[i + 1].g - kf[i].g) * f);
+        const b = Math.floor(kf[i].b + (kf[i + 1].b - kf[i].b) * f);
+        const a = kf[i].a + (kf[i + 1].a - kf[i].a) * f;
+        return { color: (r << 16) | (g << 8) | b, alpha: a };
+      }
+    }
+    return { color: (kf[0].r << 16) | (kf[0].g << 8) | kf[0].b, alpha: kf[0].a };
+  }
+
+  updateDayNight(delta) {
+    const hoursPerSecond = 24 / this.dayLength;
+    this.timeOfDay += hoursPerSecond * (delta / 1000);
+    if (this.timeOfDay >= 24) this.timeOfDay -= 24;
+
+    const tint = this.getDayNightTint();
+    this.dayNightGfx.clear();
+    this.dayNightGfx.fillStyle(tint.color, tint.alpha);
+    this.dayNightGfx.fillRect(0, 0, W, SAND_H);
+  }
+
+  // --- Fog System ---
+  createFogSystem() {
+    const depthTex = this.textures.createCanvas('fog_depth', W, SAND_H);
+    const dctx = depthTex.context;
+    const gradient = dctx.createLinearGradient(0, 0, 0, SAND_H);
+    gradient.addColorStop(0, 'rgba(210, 220, 232, 0.55)');
+    gradient.addColorStop(0.35, 'rgba(210, 220, 232, 0.22)');
+    gradient.addColorStop(0.7, 'rgba(210, 220, 232, 0.06)');
+    gradient.addColorStop(1, 'rgba(210, 220, 232, 0)');
+    dctx.fillStyle = gradient;
+    dctx.fillRect(0, 0, W, SAND_H);
+    depthTex.refresh();
+
+    this.fogDepthImage = this.add.image(W / 2, SAND_H / 2, 'fog_depth');
+    this.fogDepthImage.setDepth(7);
+    this.fogDepthImage.setAlpha(0);
+
+    const texDefs = [
+      { id: 'fog_w0', w: 240, h: 90 },
+      { id: 'fog_w1', w: 180, h: 70 },
+      { id: 'fog_w2', w: 140, h: 55 },
+      { id: 'fog_w3', w: 280, h: 50 },
+    ];
+    texDefs.forEach(def => this.createFogWispTexture(def.id, def.w, def.h));
+
+    const configs = [
+      { tex: 'fog_w3', y: 30,  speed: 6,   baseAlpha: 0.50 },
+      { tex: 'fog_w0', y: 70,  speed: -4,  baseAlpha: 0.45 },
+      { tex: 'fog_w1', y: 120, speed: 10,  baseAlpha: 0.40 },
+      { tex: 'fog_w2', y: 170, speed: -7,  baseAlpha: 0.35 },
+      { tex: 'fog_w0', y: 210, speed: 5,   baseAlpha: 0.30 },
+      { tex: 'fog_w3', y: 90,  speed: -8,  baseAlpha: 0.42 },
+      { tex: 'fog_w1', y: 260, speed: 3,   baseAlpha: 0.20 },
+      { tex: 'fog_w2', y: 150, speed: -6,  baseAlpha: 0.38 },
+      { tex: 'fog_w0', y: 45,  speed: 9,   baseAlpha: 0.48 },
+      { tex: 'fog_w1', y: 290, speed: -3,  baseAlpha: 0.15 },
+    ];
+
+    configs.forEach((cfg, i) => {
+      const startX = ((i / configs.length) * W * 2) - W * 0.3;
+      const sprite = this.add.image(startX, cfg.y, cfg.tex);
+      sprite.setDepth(8);
+      sprite.setAlpha(0);
+
+      this.fogWisps.push({
+        sprite,
+        speed: cfg.speed,
+        baseAlpha: cfg.baseAlpha,
+        baseY: cfg.y,
+        phase: (i / configs.length) * Math.PI * 2,
+      });
+    });
+  }
+
+  createFogWispTexture(id, w, h) {
+    const tex = this.textures.createCanvas(id, w, h);
+    const ctx = tex.context;
+    const imgData = ctx.createImageData(w, h);
+    const d = imgData.data;
+
+    const cx = w / 2;
+    const cy = h / 2;
+    const seed = Math.random() * 100;
+
+    for (let py = 0; py < h; py++) {
+      for (let px = 0; px < w; px++) {
+        const dx = (px - cx) / cx;
+        const dy = (py - cy) / cy;
+
+        const angle = Math.atan2(dy, dx);
+        const noise =
+          Math.sin(angle * 3 + seed) * 0.12 +
+          Math.sin(angle * 5 + seed * 1.7) * 0.08 +
+          Math.sin(angle * 8 + seed * 2.3) * 0.04;
+
+        const dist = Math.sqrt(dx * dx + dy * dy) - noise;
+
+        if (dist >= 0 && dist < 1) {
+          const fade = 1 - dist;
+          const softFade = fade * fade * fade;
+          const pixNoise = 0.85 + Math.random() * 0.3;
+          const alpha = Math.min(255, Math.floor(softFade * pixNoise * 120));
+
+          if (alpha > 0) {
+            const i = (py * w + px) * 4;
+            d[i]     = 220 + Math.floor(Math.random() * 15);
+            d[i + 1] = 225 + Math.floor(Math.random() * 15);
+            d[i + 2] = 235 + Math.floor(Math.random() * 10);
+            d[i + 3] = alpha;
+          }
+        }
+      }
+    }
+
+    ctx.putImageData(imgData, 0, 0);
+    tex.refresh();
+  }
+
+  getFogTimeMultiplier() {
+    const t = this.timeOfDay;
+    const kf = [
+      { time: 0,  v: 0.60 },
+      { time: 5,  v: 0.85 },
+      { time: 6,  v: 1.00 },
+      { time: 7,  v: 0.90 },
+      { time: 10, v: 0.40 },
+      { time: 12, v: 0.20 },
+      { time: 15, v: 0.25 },
+      { time: 17, v: 0.40 },
+      { time: 19, v: 0.65 },
+      { time: 22, v: 0.60 },
+      { time: 24, v: 0.60 },
+    ];
+
+    for (let i = 0; i < kf.length - 1; i++) {
+      if (t >= kf[i].time && t < kf[i + 1].time) {
+        const range = kf[i + 1].time - kf[i].time;
+        const f = (t - kf[i].time) / range;
+        return kf[i].v + (kf[i + 1].v - kf[i].v) * f;
+      }
+    }
+    return kf[0].v;
+  }
+
+  updateFog(delta) {
+    const timeMul = this.getFogTimeMultiplier();
+    const rainBonus = this.postRainMist * 0.5;
+    const rainActive = this.isRaining ? 0.3 : 0;
+    this.effectiveFogDensity = Math.min(1,
+      this.fogDensitySetting * (timeMul + rainBonus + rainActive)
+    );
+
+    this.fogDepthImage.setAlpha(this.effectiveFogDensity);
+
+    const dt = delta / 1000;
+    this.fogWisps.forEach(wisp => {
+      wisp.sprite.x += wisp.speed * dt;
+      wisp.phase += dt * 0.4;
+      wisp.sprite.y = wisp.baseY + Math.sin(wisp.phase) * 10;
+
+      const hw = wisp.sprite.displayWidth / 2;
+      if (wisp.speed > 0 && wisp.sprite.x - hw > W) {
+        wisp.sprite.x = -hw;
+        wisp.baseY += (Math.random() - 0.5) * 40;
+        wisp.baseY = Math.max(10, Math.min(SAND_H - 30, wisp.baseY));
+      } else if (wisp.speed < 0 && wisp.sprite.x + hw < 0) {
+        wisp.sprite.x = W + hw;
+        wisp.baseY += (Math.random() - 0.5) * 40;
+        wisp.baseY = Math.max(10, Math.min(SAND_H - 30, wisp.baseY));
+      }
+
+      const fadePulse = 0.7 + 0.3 * Math.sin(wisp.phase * 0.7);
+      wisp.sprite.setAlpha(wisp.baseAlpha * this.effectiveFogDensity * fadePulse);
+    });
+
+    this.updateAudioMuffling();
+  }
+
+  updateAudioMuffling() {
+    if (!this.fogFilter) return;
+    const density = this.effectiveFogDensity;
+    const maxFreq = 22000;
+    const minFreq = 800;
+    const targetFreq = maxFreq - (maxFreq - minFreq) * density * density;
+    this.fogFilter.frequency.setTargetAtTime(
+      targetFreq, this.audioCtx.currentTime, 0.5
+    );
+  }
+
+  // --- Rain System ---
+  createRainSystem() {
+    this.rainGfx = this.add.graphics();
+    this.rainGfx.setDepth(10);
+
+    for (let i = 0; i < 100; i++) {
+      this.rainDrops.push({
+        x: Math.random() * W,
+        y: Math.random() * SAND_H,
+        speed: 180 + Math.random() * 120,
+        length: 4 + Math.random() * 8,
+        alpha: 0.15 + Math.random() * 0.25,
+      });
+    }
+  }
+
+  toggleRain() {
+    this.isRaining = !this.isRaining;
+    if (this.isRaining) {
+      this.postRainMist = 0;
+      this.soundLayers.rain.enabled = true;
+    } else {
+      this.postRainMist = 1.0;
+      this.soundLayers.rain.enabled = false;
+    }
+    this.updateLayerGain('rain');
+  }
+
+  updateRain(delta) {
+    this.rainGfx.clear();
+
+    if (this.postRainMist > 0 && !this.isRaining) {
+      this.postRainMist = Math.max(0, this.postRainMist - (delta / 1000) / 60);
+    }
+
+    if (!this.isRaining) return;
+
+    const dt = delta / 1000;
+    const wind = Math.sin(this.timeOfDay * 0.3) * 30;
+
+    this.rainDrops.forEach(drop => {
+      drop.y += drop.speed * dt;
+      drop.x += wind * dt;
+
+      if (drop.y > SAND_H) {
+        drop.y = -(Math.random() * 20);
+        drop.x = Math.random() * W;
+      }
+      if (drop.x > W) drop.x -= W;
+      if (drop.x < 0) drop.x += W;
+
+      this.rainGfx.lineStyle(1, 0x8899aa, drop.alpha);
+      this.rainGfx.beginPath();
+      this.rainGfx.moveTo(drop.x, drop.y);
+      this.rainGfx.lineTo(drop.x + wind * 0.015, drop.y + drop.length);
+      this.rainGfx.strokePath();
+    });
+  }
+
   // --- Toolbar ---
   createToolbar() {
     const y = SAND_H;
     const gfx = this.add.graphics();
+    gfx.setDepth(20);
     gfx.fillStyle(0x4a3728, 1);
     gfx.fillRect(0, y, W, TOOLBAR_H);
     gfx.lineStyle(1, 0x3d2e1f, 0.3);
@@ -189,6 +483,7 @@ export class GardenScene extends Phaser.Scene {
       const bh = TOOLBAR_H - 8;
 
       const bg = this.add.graphics();
+      bg.setDepth(21);
       const isActive = name === this.activeTool;
       this.drawButton(bg, bx, by, btnW, bh, isActive);
 
@@ -199,9 +494,11 @@ export class GardenScene extends Phaser.Scene {
         fontStyle: 'bold',
       });
       label.setOrigin(0.5, 0.5);
+      label.setDepth(22);
 
       const hitZone = this.add.zone(bx + btnW / 2, by + bh / 2, btnW, bh)
         .setInteractive({ useHandCursor: true });
+      hitZone.setDepth(23);
 
       hitZone.on('pointerdown', () => this.selectTool(name));
 
@@ -240,7 +537,7 @@ export class GardenScene extends Phaser.Scene {
     this.syncSandToCanvas();
   }
 
-  // --- Sound Settings Dialog ---
+  // --- Sound/Ambience Dialog ---
   openSoundDialog() {
     this.ensureAudio();
     if (!this.soundDialogEl) {
@@ -265,7 +562,7 @@ export class GardenScene extends Phaser.Scene {
     const titleBar = document.createElement('div');
     titleBar.className = 'sound-dialog-title';
     const title = document.createElement('span');
-    title.textContent = 'Sound Settings';
+    title.textContent = 'Ambience';
     const closeBtn = document.createElement('button');
     closeBtn.className = 'sound-dialog-close';
     closeBtn.textContent = '\u00d7';
@@ -274,13 +571,18 @@ export class GardenScene extends Phaser.Scene {
     titleBar.appendChild(closeBtn);
     dialog.appendChild(titleBar);
 
-    const layers = [
+    const soundHeader = document.createElement('div');
+    soundHeader.className = 'sound-dialog-section sound-dialog-section-first';
+    soundHeader.textContent = 'Sounds';
+    dialog.appendChild(soundHeader);
+
+    const soundLayers = [
       { key: 'wind', label: 'Wind' },
       { key: 'chimes', label: 'Chimes' },
       { key: 'cicadas', label: 'Cicadas' },
     ];
 
-    layers.forEach(({ key, label }) => {
+    soundLayers.forEach(({ key, label }) => {
       const layer = this.soundLayers[key];
 
       const row = document.createElement('div');
@@ -316,6 +618,55 @@ export class GardenScene extends Phaser.Scene {
       row.appendChild(slider);
       dialog.appendChild(row);
     });
+
+    const atmoHeader = document.createElement('div');
+    atmoHeader.className = 'sound-dialog-section';
+    atmoHeader.textContent = 'Atmosphere';
+    dialog.appendChild(atmoHeader);
+
+    const fogRow = document.createElement('div');
+    fogRow.className = 'sound-layer-row';
+
+    const fogSpacer = document.createElement('div');
+    fogSpacer.className = 'sound-layer-spacer';
+
+    const fogLabel = document.createElement('label');
+    fogLabel.textContent = 'Fog';
+
+    const fogSlider = document.createElement('input');
+    fogSlider.type = 'range';
+    fogSlider.min = '0';
+    fogSlider.max = '100';
+    fogSlider.value = String(Math.round(this.fogDensitySetting * 100));
+    fogSlider.className = 'sound-slider';
+    fogSlider.addEventListener('input', () => {
+      this.fogDensitySetting = parseInt(fogSlider.value, 10) / 100;
+    });
+
+    fogRow.appendChild(fogSpacer);
+    fogRow.appendChild(fogLabel);
+    fogRow.appendChild(fogSlider);
+    dialog.appendChild(fogRow);
+
+    const rainRow = document.createElement('div');
+    rainRow.className = 'sound-layer-row';
+
+    const rainToggle = document.createElement('input');
+    rainToggle.type = 'checkbox';
+    rainToggle.checked = this.isRaining;
+    rainToggle.id = 'atmo-rain';
+    rainToggle.addEventListener('change', () => {
+      this.toggleRain();
+      rainToggle.checked = this.isRaining;
+    });
+
+    const rainLabel = document.createElement('label');
+    rainLabel.htmlFor = 'atmo-rain';
+    rainLabel.textContent = 'Rain';
+
+    rainRow.appendChild(rainToggle);
+    rainRow.appendChild(rainLabel);
+    dialog.appendChild(rainRow);
 
     overlay.appendChild(dialog);
     overlay.addEventListener('click', (e) => {
@@ -452,7 +803,7 @@ export class GardenScene extends Phaser.Scene {
     this.sandPixels[i + 3] = 255;
   }
 
-  // --- Items (Rocks & Shrubs) ---
+  // --- Items ---
   placeItem(type, x, y) {
     let key;
     if (type === 'ROCK') {
@@ -464,6 +815,7 @@ export class GardenScene extends Phaser.Scene {
     }
     const sprite = this.add.image(x, y, key);
     sprite.setScale(2);
+    sprite.setDepth(5);
     sprite.setInteractive({ draggable: true, useHandCursor: true });
 
     this.input.setDraggable(sprite);
@@ -561,37 +913,25 @@ export class GardenScene extends Phaser.Scene {
       d[i + 3] = 255;
     };
 
-    // Roof colors (dark gray tiles)
     const roofBase = [0x45, 0x45, 0x50];
     const roofHighlight = [0x60, 0x60, 0x68];
-    
-    // Wall colors (warm wood)
     const wallBase = [0x8b, 0x6b, 0x4a];
     const wallDark = [0x6a, 0x52, 0x3a];
-    
-    // Floor/base color
     const floorColor = [0x5a, 0x48, 0x38];
-    
-    // Door color (darker)
     const doorColor = [0x3a, 0x2a, 0x20];
 
-    // Draw curved roof (Japanese style)
     for (let py = 0; py < 9; py++) {
       for (let px = 0; px < w; px++) {
-        // Calculate roof curve - wider at bottom, narrower at top
-        const roofCenterY = 5;
         const roofWidth = w / 2 + (8 - py) * 0.8;
         const centerX = w / 2;
         const distFromCenter = Math.abs(px - centerX);
-        
+
         if (distFromCenter <= roofWidth) {
-          // Curved shape - parabolic
           const normalizedX = distFromCenter / roofWidth;
           const curveHeight = py + normalizedX * normalizedX * 3;
-          
+
           if (curveHeight >= py && curveHeight < py + 1.5) {
             const noise = Math.floor((Math.random() - 0.5) * 10);
-            // Add some highlight on top
             if (py < 3) {
               setPixel(px, py, roofHighlight[0] + noise, roofHighlight[1] + noise, roofHighlight[2] + noise);
             } else {
@@ -601,18 +941,15 @@ export class GardenScene extends Phaser.Scene {
         }
       }
     }
-    
-    // Roof overhang edges
+
     for (let px = 2; px < w - 2; px++) {
       const noise = Math.floor((Math.random() - 0.5) * 8);
       setPixel(px, 8, roofBase[0] - 10 + noise, roofBase[1] - 10 + noise, roofBase[2] + noise);
     }
 
-    // Draw walls
     for (let py = 9; py < 17; py++) {
       for (let px = 4; px < w - 4; px++) {
         const noise = Math.floor((Math.random() - 0.5) * 15);
-        // Left and right edges are darker (depth)
         if (px < 6 || px >= w - 6) {
           setPixel(px, py, wallDark[0] + noise, wallDark[1] + noise, wallDark[2] + noise);
         } else {
@@ -620,8 +957,7 @@ export class GardenScene extends Phaser.Scene {
         }
       }
     }
-    
-    // Draw door in center
+
     const doorLeft = Math.floor(w / 2) - 2;
     const doorRight = Math.floor(w / 2) + 2;
     for (let py = 11; py < 17; py++) {
@@ -630,9 +966,8 @@ export class GardenScene extends Phaser.Scene {
         setPixel(px, py, doorColor[0] + noise, doorColor[1] + noise, doorColor[2] + noise);
       }
     }
-    
-    // Draw small window on each side
-    const windowColor = [0x2a, 0x3a, 0x4a]; // Dark blue-ish
+
+    const windowColor = [0x2a, 0x3a, 0x4a];
     for (let py = 11; py < 14; py++) {
       for (let px = 6; px < 9; px++) {
         setPixel(px, py, windowColor[0], windowColor[1], windowColor[2]);
@@ -642,7 +977,6 @@ export class GardenScene extends Phaser.Scene {
       }
     }
 
-    // Draw floor/foundation
     for (let px = 3; px < w - 3; px++) {
       const noise = Math.floor((Math.random() - 0.5) * 10);
       setPixel(px, 17, floorColor[0] + noise, floorColor[1] + noise, floorColor[2] + noise);
@@ -661,10 +995,23 @@ export class GardenScene extends Phaser.Scene {
 
     try {
       this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+      this.audioMaster = this.audioCtx.createGain();
+      this.audioMaster.gain.value = 1.0;
+
+      this.fogFilter = this.audioCtx.createBiquadFilter();
+      this.fogFilter.type = 'lowpass';
+      this.fogFilter.frequency.value = 22000;
+      this.fogFilter.Q.value = 0.5;
+
+      this.audioMaster.connect(this.fogFilter);
+      this.fogFilter.connect(this.audioCtx.destination);
+
       this.setupWind();
       this.setupChimes();
       this.setupCicadas();
       this.setupRakeSound();
+      this.setupRainSound();
     } catch (e) {
       // Web Audio not available
     }
@@ -694,7 +1041,7 @@ export class GardenScene extends Phaser.Scene {
 
     source.connect(filter);
     filter.connect(layer.gain);
-    layer.gain.connect(ctx.destination);
+    layer.gain.connect(this.audioMaster);
     source.start();
   }
 
@@ -704,7 +1051,7 @@ export class GardenScene extends Phaser.Scene {
 
     layer.gain = ctx.createGain();
     layer.gain.gain.value = layer.enabled ? layer.volume * layer.maxGain : 0;
-    layer.gain.connect(ctx.destination);
+    layer.gain.connect(this.audioMaster);
 
     this.scheduleChime();
   }
@@ -807,7 +1154,7 @@ export class GardenScene extends Phaser.Scene {
     swell.connect(layer.swellGain);
     layer.swellGain.connect(layer.gain.gain);
 
-    layer.gain.connect(ctx.destination);
+    layer.gain.connect(this.audioMaster);
 
     source.start();
     lfo.start();
@@ -837,12 +1184,45 @@ export class GardenScene extends Phaser.Scene {
 
     source.connect(filter);
     filter.connect(this.rakeGain);
-    this.rakeGain.connect(ctx.destination);
+    this.rakeGain.connect(this.audioMaster);
+    source.start();
+  }
+
+  setupRainSound() {
+    const ctx = this.audioCtx;
+    const layer = this.soundLayers.rain;
+
+    const bufferSize = ctx.sampleRate * 2;
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = Math.random() * 2 - 1;
+    }
+
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    source.loop = true;
+
+    const lpf = ctx.createBiquadFilter();
+    lpf.type = 'lowpass';
+    lpf.frequency.value = 3000;
+
+    const hpf = ctx.createBiquadFilter();
+    hpf.type = 'highpass';
+    hpf.frequency.value = 400;
+
+    layer.gain = ctx.createGain();
+    layer.gain.gain.value = layer.enabled ? layer.volume * layer.maxGain : 0;
+
+    source.connect(lpf);
+    lpf.connect(hpf);
+    hpf.connect(layer.gain);
+    layer.gain.connect(this.audioMaster);
     source.start();
   }
 
   playPlaceSound() {
-    if (!this.audioCtx) return;
+    if (!this.audioCtx || !this.audioMaster) return;
     const ctx = this.audioCtx;
     const osc = ctx.createOscillator();
     osc.frequency.value = 90;
@@ -850,15 +1230,20 @@ export class GardenScene extends Phaser.Scene {
     gain.gain.setValueAtTime(0.15, ctx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
     osc.connect(gain);
-    gain.connect(ctx.destination);
+    gain.connect(this.audioMaster);
     osc.start();
     osc.stop(ctx.currentTime + 0.2);
   }
 
   // --- Update Loop ---
-  update() {
+  update(_time, delta) {
     if (this.sandDirty) {
       this.syncSandToCanvas();
     }
+
+    const dt = Math.min(delta || 16, 100);
+    this.updateDayNight(dt);
+    this.updateFog(dt);
+    this.updateRain(dt);
   }
 }
