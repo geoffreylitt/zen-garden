@@ -123,6 +123,74 @@
     .sound-slider::-moz-range-thumb:hover {
       background: #e8dcbc;
     }
+
+    .sound-separator {
+      text-align: center;
+      font-size: 10px;
+      color: #8a7a60;
+      margin: 10px 0 12px;
+      letter-spacing: 1px;
+      border-top: 1px solid #6b5340;
+      padding-top: 10px;
+    }
+
+    #time-settings-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.45);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+
+    #time-settings-dialog {
+      background: #4a3728;
+      border: 2px solid #6b5340;
+      border-radius: 8px;
+      padding: 16px 20px;
+      min-width: 300px;
+      color: #e8dcbc;
+      font-family: monospace;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+    }
+
+    .time-display {
+      text-align: center;
+      font-size: 16px;
+      font-weight: bold;
+      letter-spacing: 1px;
+      margin-bottom: 12px;
+      padding: 6px 0;
+      color: #f0e4c8;
+    }
+
+    .time-presets {
+      display: flex;
+      gap: 6px;
+      justify-content: center;
+      margin-bottom: 14px;
+    }
+
+    .time-preset-btn {
+      background: #5c4433;
+      border: 1px solid #6b5340;
+      border-radius: 4px;
+      color: #c8b898;
+      font-family: monospace;
+      font-size: 11px;
+      padding: 4px 10px;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .time-preset-btn:hover {
+      background: #7a6050;
+      color: #f0e4c8;
+    }
   </style>
 </head>
 <body>
