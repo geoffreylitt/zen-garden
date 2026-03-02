@@ -173,7 +173,7 @@ export class GardenScene extends Phaser.Scene {
       gfx.strokePath();
     }
 
-    const tools = ['RAKE', 'ROCK', 'SHRUB', 'CLEAR', 'SOUND'];
+    const tools = ['RAKE', 'ROCK', 'SHRUB', 'TEAHOUSE', 'CLEAR', 'SOUND'];
     const btnW = 70;
     const gap = (W - tools.length * btnW) / (tools.length + 1);
 
@@ -262,7 +262,7 @@ export class GardenScene extends Phaser.Scene {
         if (this.rakeGain) {
           this.rakeGain.gain.linearRampToValueAtTime(0.06, this.audioCtx.currentTime + 0.1);
         }
-      } else if (this.activeTool === 'ROCK' || this.activeTool === 'SHRUB') {
+      } else if (this.activeTool === 'ROCK' || this.activeTool === 'SHRUB' || this.activeTool === 'TEAHOUSE') {
         const gx = Math.floor(pointer.x);
         const gy = Math.floor(pointer.y);
         if (this.isInGarden(gx, gy)) {
@@ -339,7 +339,14 @@ export class GardenScene extends Phaser.Scene {
 
   // --- Items (Rocks & Shrubs) ---
   placeItem(type, x, y) {
-    const key = type === 'ROCK' ? this.createRockTexture() : this.createShrubTexture();
+    let key;
+    if (type === 'ROCK') {
+      key = this.createRockTexture();
+    } else if (type === 'SHRUB') {
+      key = this.createShrubTexture();
+    } else if (type === 'TEAHOUSE') {
+      key = this.createTeahouseTexture();
+    }
     const sprite = this.add.image(x, y, key);
     sprite.setScale(2);
     sprite.setInteractive({ draggable: true, useHandCursor: true });
@@ -417,6 +424,117 @@ export class GardenScene extends Phaser.Scene {
         }
       }
     }
+    ctx.putImageData(imgData, 0, 0);
+    tex.refresh();
+    return id;
+  }
+
+  createTeahouseTexture() {
+    const id = 'teahouse_' + Date.now() + '_' + Math.random();
+    const w = 24;
+    const h = 20;
+    const tex = this.textures.createCanvas(id, w, h);
+    const ctx = tex.context;
+    const imgData = ctx.createImageData(w, h);
+    const d = imgData.data;
+
+    const setPixel = (px, py, r, g, b) => {
+      if (px < 0 || px >= w || py < 0 || py >= h) return;
+      const i = (py * w + px) * 4;
+      d[i] = r;
+      d[i + 1] = g;
+      d[i + 2] = b;
+      d[i + 3] = 255;
+    };
+
+    // Roof colors (dark gray tiles)
+    const roofBase = [0x45, 0x45, 0x50];
+    const roofHighlight = [0x60, 0x60, 0x68];
+    
+    // Wall colors (warm wood)
+    const wallBase = [0x8b, 0x6b, 0x4a];
+    const wallDark = [0x6a, 0x52, 0x3a];
+    
+    // Floor/base color
+    const floorColor = [0x5a, 0x48, 0x38];
+    
+    // Door color (darker)
+    const doorColor = [0x3a, 0x2a, 0x20];
+
+    // Draw curved roof (Japanese style)
+    for (let py = 0; py < 9; py++) {
+      for (let px = 0; px < w; px++) {
+        // Calculate roof curve - wider at bottom, narrower at top
+        const roofCenterY = 5;
+        const roofWidth = w / 2 + (8 - py) * 0.8;
+        const centerX = w / 2;
+        const distFromCenter = Math.abs(px - centerX);
+        
+        if (distFromCenter <= roofWidth) {
+          // Curved shape - parabolic
+          const normalizedX = distFromCenter / roofWidth;
+          const curveHeight = py + normalizedX * normalizedX * 3;
+          
+          if (curveHeight >= py && curveHeight < py + 1.5) {
+            const noise = Math.floor((Math.random() - 0.5) * 10);
+            // Add some highlight on top
+            if (py < 3) {
+              setPixel(px, py, roofHighlight[0] + noise, roofHighlight[1] + noise, roofHighlight[2] + noise);
+            } else {
+              setPixel(px, py, roofBase[0] + noise, roofBase[1] + noise, roofBase[2] + noise);
+            }
+          }
+        }
+      }
+    }
+    
+    // Roof overhang edges
+    for (let px = 2; px < w - 2; px++) {
+      const noise = Math.floor((Math.random() - 0.5) * 8);
+      setPixel(px, 8, roofBase[0] - 10 + noise, roofBase[1] - 10 + noise, roofBase[2] + noise);
+    }
+
+    // Draw walls
+    for (let py = 9; py < 17; py++) {
+      for (let px = 4; px < w - 4; px++) {
+        const noise = Math.floor((Math.random() - 0.5) * 15);
+        // Left and right edges are darker (depth)
+        if (px < 6 || px >= w - 6) {
+          setPixel(px, py, wallDark[0] + noise, wallDark[1] + noise, wallDark[2] + noise);
+        } else {
+          setPixel(px, py, wallBase[0] + noise, wallBase[1] + noise, wallBase[2] + noise);
+        }
+      }
+    }
+    
+    // Draw door in center
+    const doorLeft = Math.floor(w / 2) - 2;
+    const doorRight = Math.floor(w / 2) + 2;
+    for (let py = 11; py < 17; py++) {
+      for (let px = doorLeft; px <= doorRight; px++) {
+        const noise = Math.floor((Math.random() - 0.5) * 8);
+        setPixel(px, py, doorColor[0] + noise, doorColor[1] + noise, doorColor[2] + noise);
+      }
+    }
+    
+    // Draw small window on each side
+    const windowColor = [0x2a, 0x3a, 0x4a]; // Dark blue-ish
+    for (let py = 11; py < 14; py++) {
+      for (let px = 6; px < 9; px++) {
+        setPixel(px, py, windowColor[0], windowColor[1], windowColor[2]);
+      }
+      for (let px = w - 9; px < w - 6; px++) {
+        setPixel(px, py, windowColor[0], windowColor[1], windowColor[2]);
+      }
+    }
+
+    // Draw floor/foundation
+    for (let px = 3; px < w - 3; px++) {
+      const noise = Math.floor((Math.random() - 0.5) * 10);
+      setPixel(px, 17, floorColor[0] + noise, floorColor[1] + noise, floorColor[2] + noise);
+      setPixel(px, 18, floorColor[0] - 10 + noise, floorColor[1] - 10 + noise, floorColor[2] - 10 + noise);
+    }
+
     ctx.putImageData(imgData, 0, 0);
     tex.refresh();
     return id;
