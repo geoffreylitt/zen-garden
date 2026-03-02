@@ -14,6 +14,9 @@ const RIDGE_COLOR = [0xe8, 0xdc, 0xbc];
 const TINE_COUNT = 5;
 const TINE_SPACING = 3;
 
+// Pentatonic chime frequencies (C5-D6 range)
+const CHIME_NOTES = [523.25, 587.33, 659.25, 783.99, 880.0, 1046.50, 1174.66];
+
 export class GardenScene extends Phaser.Scene {
   constructor() {
     super('GardenScene');
@@ -25,10 +28,16 @@ export class GardenScene extends Phaser.Scene {
     this.sandDirty = false;
     this.placedItems = [];
     this.audioStarted = false;
-    this.soundEnabled = true;
     this.audioCtx = null;
-    this.windGain = null;
     this.rakeGain = null;
+    this.chimeTimer = null;
+    this.soundDialogEl = null;
+
+    this.soundLayers = {
+      wind:    { enabled: true, volume: 0.6, gain: null, maxGain: 0.06 },
+      chimes:  { enabled: true, volume: 0.5, gain: null, maxGain: 0.12 },
+      cicadas: { enabled: true, volume: 0.4, gain: null, maxGain: 0.05 },
+    };
   }
 
   create() {
@@ -88,7 +97,6 @@ export class GardenScene extends Phaser.Scene {
           this.sandPixels[i + 2] = SAND_BASE[2] + noise;
           this.sandPixels[i + 3] = 255;
         } else {
-          // outside garden — dark ground
           this.sandPixels[i] = 0x3a;
           this.sandPixels[i + 1] = 0x3a;
           this.sandPixels[i + 2] = 0x36;
@@ -112,7 +120,6 @@ export class GardenScene extends Phaser.Scene {
   drawBorder() {
     const gfx = this.add.graphics();
 
-    // Build border path from mask edge
     const cx = W / 2;
     const cy = SAND_H / 2;
     const rx = W * 0.42;
@@ -134,7 +141,6 @@ export class GardenScene extends Phaser.Scene {
       });
     }
 
-    // Stone border
     gfx.lineStyle(5, 0x888880, 1);
     gfx.beginPath();
     gfx.moveTo(points[0].x, points[0].y);
@@ -144,7 +150,6 @@ export class GardenScene extends Phaser.Scene {
     gfx.closePath();
     gfx.strokePath();
 
-    // Moss dots along border
     for (let i = 0; i < points.length; i++) {
       if (Math.random() < 0.4) {
         const p = points[i];
@@ -164,7 +169,6 @@ export class GardenScene extends Phaser.Scene {
     const gfx = this.add.graphics();
     gfx.fillStyle(0x4a3728, 1);
     gfx.fillRect(0, y, W, TOOLBAR_H);
-    // Wood grain lines
     gfx.lineStyle(1, 0x3d2e1f, 0.3);
     for (let ly = y + 5; ly < y + TOOLBAR_H; ly += 6) {
       gfx.beginPath();
@@ -203,6 +207,8 @@ export class GardenScene extends Phaser.Scene {
 
       this.toolButtons.push({ name, bg, label, bx, by, btnW, bh, hitZone });
     });
+
+    this.updateSoundButtonVisual();
   }
 
   drawButton(gfx, x, y, w, h, active) {
@@ -217,11 +223,12 @@ export class GardenScene extends Phaser.Scene {
       return;
     }
     if (name === 'SOUND') {
-      this.toggleSound();
+      this.openSoundDialog();
       return;
     }
     this.activeTool = name;
     this.toolButtons.forEach((btn) => {
+      if (btn.name === 'SOUND') return;
       const isActive = btn.name === this.activeTool;
       this.drawButton(btn.bg, btn.bx, btn.by, btn.btnW, btn.bh, isActive);
       btn.label.setColor(isActive ? '#4a3728' : '#c8b898');
@@ -233,20 +240,127 @@ export class GardenScene extends Phaser.Scene {
     this.syncSandToCanvas();
   }
 
-  toggleSound() {
-    this.soundEnabled = !this.soundEnabled;
-    if (this.windGain) {
-      this.windGain.gain.value = this.soundEnabled ? 0.03 : 0;
+  // --- Sound Settings Dialog ---
+  openSoundDialog() {
+    this.ensureAudio();
+    if (!this.soundDialogEl) {
+      this.createSoundDialog();
     }
-    // Update SOUND button visual
+    this.soundDialogEl.style.display = 'flex';
+  }
+
+  closeSoundDialog() {
+    if (this.soundDialogEl) {
+      this.soundDialogEl.style.display = 'none';
+    }
+  }
+
+  createSoundDialog() {
+    const overlay = document.createElement('div');
+    overlay.id = 'sound-settings-overlay';
+
+    const dialog = document.createElement('div');
+    dialog.id = 'sound-settings-dialog';
+
+    const titleBar = document.createElement('div');
+    titleBar.className = 'sound-dialog-title';
+    const title = document.createElement('span');
+    title.textContent = 'Sound Settings';
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'sound-dialog-close';
+    closeBtn.textContent = '\u00d7';
+    closeBtn.addEventListener('click', () => this.closeSoundDialog());
+    titleBar.appendChild(title);
+    titleBar.appendChild(closeBtn);
+    dialog.appendChild(titleBar);
+
+    const layers = [
+      { key: 'wind', label: 'Wind' },
+      { key: 'chimes', label: 'Chimes' },
+      { key: 'cicadas', label: 'Cicadas' },
+    ];
+
+    layers.forEach(({ key, label }) => {
+      const layer = this.soundLayers[key];
+
+      const row = document.createElement('div');
+      row.className = 'sound-layer-row';
+
+      const toggle = document.createElement('input');
+      toggle.type = 'checkbox';
+      toggle.checked = layer.enabled;
+      toggle.id = `sound-${key}`;
+      toggle.addEventListener('change', () => {
+        layer.enabled = toggle.checked;
+        this.updateLayerGain(key);
+        this.updateSoundButtonVisual();
+      });
+
+      const labelEl = document.createElement('label');
+      labelEl.htmlFor = `sound-${key}`;
+      labelEl.textContent = label;
+
+      const slider = document.createElement('input');
+      slider.type = 'range';
+      slider.min = '0';
+      slider.max = '100';
+      slider.value = String(Math.round(layer.volume * 100));
+      slider.className = 'sound-slider';
+      slider.addEventListener('input', () => {
+        layer.volume = parseInt(slider.value, 10) / 100;
+        this.updateLayerGain(key);
+      });
+
+      row.appendChild(toggle);
+      row.appendChild(labelEl);
+      row.appendChild(slider);
+      dialog.appendChild(row);
+    });
+
+    overlay.appendChild(dialog);
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) this.closeSoundDialog();
+    });
+
+    document.body.appendChild(overlay);
+    this.soundDialogEl = overlay;
+  }
+
+  updateLayerGain(key) {
+    const layer = this.soundLayers[key];
+    if (!layer.gain) return;
+
+    const target = layer.enabled ? layer.volume * layer.maxGain : 0;
+    const t = this.audioCtx.currentTime;
+
+    layer.gain.gain.cancelScheduledValues(t);
+    layer.gain.gain.setValueAtTime(layer.gain.gain.value, t);
+    layer.gain.gain.linearRampToValueAtTime(target, t + 0.1);
+
+    if (key === 'cicadas') {
+      if (layer.lfoGain) {
+        layer.lfoGain.gain.cancelScheduledValues(t);
+        layer.lfoGain.gain.setValueAtTime(layer.lfoGain.gain.value, t);
+        layer.lfoGain.gain.linearRampToValueAtTime(target * 0.5, t + 0.1);
+      }
+      if (layer.swellGain) {
+        layer.swellGain.gain.cancelScheduledValues(t);
+        layer.swellGain.gain.setValueAtTime(layer.swellGain.gain.value, t);
+        layer.swellGain.gain.linearRampToValueAtTime(target * 0.3, t + 0.1);
+      }
+    }
+  }
+
+  updateSoundButtonVisual() {
     const soundBtn = this.toolButtons.find(b => b.name === 'SOUND');
-    if (soundBtn) {
-      const on = this.soundEnabled;
-      soundBtn.bg.clear();
-      soundBtn.bg.fillStyle(on ? 0x607860 : 0x5c4433, 1);
-      soundBtn.bg.fillRoundedRect(soundBtn.bx, soundBtn.by, soundBtn.btnW, soundBtn.bh, 3);
-      soundBtn.label.setColor(on ? '#e8dcbc' : '#886655');
-    }
+    if (!soundBtn) return;
+    const anyEnabled = Object.values(this.soundLayers).some(l => l.enabled);
+    soundBtn.bg.clear();
+    soundBtn.bg.fillStyle(anyEnabled ? 0x607860 : 0x5c4433, 1);
+    soundBtn.bg.fillRoundedRect(
+      soundBtn.bx, soundBtn.by, soundBtn.btnW, soundBtn.bh, 3
+    );
+    soundBtn.label.setColor(anyEnabled ? '#e8dcbc' : '#886655');
   }
 
   // --- Input ---
@@ -254,13 +368,15 @@ export class GardenScene extends Phaser.Scene {
     this.input.on('pointerdown', (pointer) => {
       this.ensureAudio();
 
-      if (pointer.y >= SAND_H) return; // toolbar area handled by buttons
+      if (pointer.y >= SAND_H) return;
 
       if (this.activeTool === 'RAKE') {
         this.dragging = true;
         this.lastPointer = { x: pointer.x, y: pointer.y };
         if (this.rakeGain) {
-          this.rakeGain.gain.linearRampToValueAtTime(0.06, this.audioCtx.currentTime + 0.1);
+          this.rakeGain.gain.linearRampToValueAtTime(
+            0.06, this.audioCtx.currentTime + 0.1
+          );
         }
       } else if (this.activeTool === 'ROCK' || this.activeTool === 'SHRUB' || this.activeTool === 'TEAHOUSE') {
         const gx = Math.floor(pointer.x);
@@ -283,7 +399,9 @@ export class GardenScene extends Phaser.Scene {
       this.dragging = false;
       this.lastPointer = null;
       if (this.rakeGain) {
-        this.rakeGain.gain.linearRampToValueAtTime(0, this.audioCtx.currentTime + 0.2);
+        this.rakeGain.gain.linearRampToValueAtTime(
+          0, this.audioCtx.currentTime + 0.2
+        );
       }
     });
   }
@@ -298,7 +416,6 @@ export class GardenScene extends Phaser.Scene {
     const steps = Math.ceil(dist);
     const nx = dx / dist;
     const ny = dy / dist;
-    // Perpendicular
     const px = -ny;
     const py = nx;
 
@@ -315,9 +432,7 @@ export class GardenScene extends Phaser.Scene {
 
         if (!this.isInGarden(tx, ty)) continue;
 
-        // Groove (dark center)
         this.setSandPixel(tx, ty, GROOVE_COLOR);
-        // Ridge (light sides)
         const rx1 = Math.floor(tx + px);
         const ry1 = Math.floor(ty + py);
         const rx2 = Math.floor(tx - px);
@@ -371,7 +486,6 @@ export class GardenScene extends Phaser.Scene {
     const imgData = ctx.createImageData(w, h);
     const d = imgData.data;
 
-    // Simple rock shape: elliptical with shading
     const cx = w / 2;
     const cy = h / 2;
     for (let py = 0; py < h; py++) {
@@ -381,7 +495,8 @@ export class GardenScene extends Phaser.Scene {
         const dist = dx * dx + dy * dy;
         if (dist <= 1.0) {
           const i = (py * w + px) * 4;
-          const shade = 0x70 + Math.floor((1 - dist) * 0x40) + Math.floor((Math.random() - 0.5) * 20);
+          const shade = 0x70 + Math.floor((1 - dist) * 0x40) +
+            Math.floor((Math.random() - 0.5) * 20);
           const warm = Math.floor(Math.random() * 10);
           d[i] = shade + warm;
           d[i + 1] = shade;
@@ -411,12 +526,11 @@ export class GardenScene extends Phaser.Scene {
         const dx = (px - cx) / (w / 2);
         const dy = (py - cy) / (h / 2);
         const dist = dx * dx + dy * dy;
-        // Irregular shrub shape
         const noise = Math.sin(px * 3) * 0.15 + Math.cos(py * 4) * 0.1;
         if (dist + noise <= 0.9) {
           const i = (py * w + px) * 4;
           const green = 0x50 + Math.floor(Math.random() * 0x40);
-          const dark = py > cy ? 0.7 : 1.0; // bottom is darker
+          const dark = py > cy ? 0.7 : 1.0;
           d[i] = Math.floor(0x20 * dark);
           d[i + 1] = Math.floor(green * dark);
           d[i + 2] = Math.floor(0x15 * dark);
@@ -548,6 +662,8 @@ export class GardenScene extends Phaser.Scene {
     try {
       this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       this.setupWind();
+      this.setupChimes();
+      this.setupCicadas();
       this.setupRakeSound();
     } catch (e) {
       // Web Audio not available
@@ -556,6 +672,8 @@ export class GardenScene extends Phaser.Scene {
 
   setupWind() {
     const ctx = this.audioCtx;
+    const layer = this.soundLayers.wind;
+
     const bufferSize = ctx.sampleRate * 2;
     const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
     const data = buffer.getChannelData(0);
@@ -571,13 +689,129 @@ export class GardenScene extends Phaser.Scene {
     filter.type = 'lowpass';
     filter.frequency.value = 250;
 
-    this.windGain = ctx.createGain();
-    this.windGain.gain.value = this.soundEnabled ? 0.03 : 0;
+    layer.gain = ctx.createGain();
+    layer.gain.gain.value = layer.enabled ? layer.volume * layer.maxGain : 0;
 
     source.connect(filter);
-    filter.connect(this.windGain);
-    this.windGain.connect(ctx.destination);
+    filter.connect(layer.gain);
+    layer.gain.connect(ctx.destination);
     source.start();
+  }
+
+  setupChimes() {
+    const ctx = this.audioCtx;
+    const layer = this.soundLayers.chimes;
+
+    layer.gain = ctx.createGain();
+    layer.gain.gain.value = layer.enabled ? layer.volume * layer.maxGain : 0;
+    layer.gain.connect(ctx.destination);
+
+    this.scheduleChime();
+  }
+
+  scheduleChime() {
+    if (!this.audioCtx || this.audioCtx.state === 'closed') return;
+
+    const ctx = this.audioCtx;
+    const layer = this.soundLayers.chimes;
+
+    if (layer.enabled) {
+      const count = Math.random() < 0.3 ? 2 : 1;
+      for (let c = 0; c < count; c++) {
+        const freq = CHIME_NOTES[Math.floor(Math.random() * CHIME_NOTES.length)];
+        const delay = c * (0.1 + Math.random() * 0.15);
+        const duration = 1.5 + Math.random() * 1.5;
+        const t = ctx.currentTime + delay;
+
+        const osc = ctx.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+
+        const osc2 = ctx.createOscillator();
+        osc2.type = 'sine';
+        osc2.frequency.value = freq * 2.01;
+
+        const g1 = ctx.createGain();
+        g1.gain.setValueAtTime(0, t);
+        g1.gain.linearRampToValueAtTime(0.25, t + 0.005);
+        g1.gain.exponentialRampToValueAtTime(0.001, t + duration);
+
+        const g2 = ctx.createGain();
+        g2.gain.setValueAtTime(0, t);
+        g2.gain.linearRampToValueAtTime(0.06, t + 0.005);
+        g2.gain.exponentialRampToValueAtTime(0.001, t + duration * 0.6);
+
+        osc.connect(g1);
+        osc2.connect(g2);
+        g1.connect(layer.gain);
+        g2.connect(layer.gain);
+
+        osc.start(t);
+        osc.stop(t + duration);
+        osc2.start(t);
+        osc2.stop(t + duration * 0.6);
+      }
+    }
+
+    const nextDelay = 3000 + Math.random() * 6000;
+    this.chimeTimer = setTimeout(() => this.scheduleChime(), nextDelay);
+  }
+
+  setupCicadas() {
+    const ctx = this.audioCtx;
+    const layer = this.soundLayers.cicadas;
+
+    const bufferSize = ctx.sampleRate * 2;
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = Math.random() * 2 - 1;
+    }
+
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    source.loop = true;
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.value = 5500;
+    filter.Q.value = 3;
+
+    const filter2 = ctx.createBiquadFilter();
+    filter2.type = 'bandpass';
+    filter2.frequency.value = 4200;
+    filter2.Q.value = 4;
+
+    layer.gain = ctx.createGain();
+    const baseGain = layer.enabled ? layer.volume * layer.maxGain : 0;
+    layer.gain.gain.value = baseGain;
+
+    const lfo = ctx.createOscillator();
+    lfo.frequency.value = 8;
+    layer.lfoGain = ctx.createGain();
+    layer.lfoGain.gain.value = baseGain * 0.5;
+
+    const swell = ctx.createOscillator();
+    swell.frequency.value = 0.15;
+    layer.swellGain = ctx.createGain();
+    layer.swellGain.gain.value = baseGain * 0.3;
+
+    source.connect(filter);
+    source.connect(filter2);
+    filter.connect(layer.gain);
+    filter2.connect(layer.gain);
+
+    lfo.connect(layer.lfoGain);
+    layer.lfoGain.connect(layer.gain.gain);
+
+    swell.connect(layer.swellGain);
+    layer.swellGain.connect(layer.gain.gain);
+
+    layer.gain.connect(ctx.destination);
+
+    source.start();
+    lfo.start();
+    swell.start();
   }
 
   setupRakeSound() {
@@ -608,7 +842,7 @@ export class GardenScene extends Phaser.Scene {
   }
 
   playPlaceSound() {
-    if (!this.audioCtx || !this.soundEnabled) return;
+    if (!this.audioCtx) return;
     const ctx = this.audioCtx;
     const osc = ctx.createOscillator();
     osc.frequency.value = 90;
