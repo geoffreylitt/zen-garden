@@ -1,9 +1,10 @@
 import Phaser from 'phaser';
 
-const W = 480;
-const H = 360;
-const TOOLBAR_H = 30;
-const SAND_H = H - TOOLBAR_H; // 330
+const SAND_SCALE = 3;
+const W = 480 * SAND_SCALE;
+const H = 360 * SAND_SCALE;
+const TOOLBAR_H = 30 * SAND_SCALE;
+const SAND_H = H - TOOLBAR_H;
 
 // Colors
 const SAND_BASE = [0xd2, 0xc4, 0xa0];
@@ -12,7 +13,9 @@ const RIDGE_COLOR = [0xe8, 0xdc, 0xbc];
 
 // Rake config
 const TINE_COUNT = 5;
-const TINE_SPACING = 3;
+const TINE_SPACING = 3 * SAND_SCALE;
+const GROOVE_HW = Math.max(1, Math.round(SAND_SCALE * 0.7));
+const RIDGE_W = Math.max(1, Math.round(SAND_SCALE * 0.8));
 
 // Pentatonic chime frequencies (C5-D6 range)
 const CHIME_NOTES = [523.25, 587.33, 659.25, 783.99, 880.0, 1046.50, 1174.66];
@@ -32,6 +35,7 @@ export class GardenScene extends Phaser.Scene {
     this.rakeGain = null;
     this.chimeTimer = null;
     this.soundDialogEl = null;
+    this.dirtyRect = { x1: Infinity, y1: Infinity, x2: -Infinity, y2: -Infinity };
 
     this.soundLayers = {
       wind:    { enabled: true, volume: 0.6, gain: null, maxGain: 0.06 },
@@ -82,7 +86,7 @@ export class GardenScene extends Phaser.Scene {
     this.sandTexture = this.textures.createCanvas('sand', W, SAND_H);
     this.sandPixels = new Uint8ClampedArray(W * SAND_H * 4);
     this.fillSand();
-    this.syncSandToCanvas();
+    this.syncSandToCanvas(true);
     this.add.image(W / 2, SAND_H / 2, 'sand');
   }
 
@@ -91,13 +95,23 @@ export class GardenScene extends Phaser.Scene {
       for (let x = 0; x < W; x++) {
         const i = (y * W + x) * 4;
         if (this.gardenMask[y * W + x]) {
-          const noise = (Math.random() - 0.5) * 16;
-          this.sandPixels[i] = SAND_BASE[0] + noise;
-          this.sandPixels[i + 1] = SAND_BASE[1] + noise;
-          this.sandPixels[i + 2] = SAND_BASE[2] + noise;
+          const dune = Math.sin(x * 0.02 + y * 0.015) * 4
+                     + Math.sin(x * 0.013 - y * 0.009 + 2.5) * 3;
+          const cluster = Math.sin(x * 0.08 + 0.7) * Math.cos(y * 0.1 + 1.2) * 3
+                        + Math.sin(x * 0.12 - y * 0.06) * 2;
+          const fine = (Math.random() - 0.5) * 10;
+          const grain = Math.random() < 0.012
+            ? (Math.random() > 0.5 ? 1 : -1) * (15 + Math.random() * 12)
+            : 0;
+          const warmth = (Math.random() - 0.5) * 4;
+          const tint = (Math.random() - 0.5) * 2;
+          const n = dune + cluster + fine + grain;
+          this.sandPixels[i]     = Math.max(0, Math.min(255, SAND_BASE[0] + n + warmth));
+          this.sandPixels[i + 1] = Math.max(0, Math.min(255, SAND_BASE[1] + n + tint));
+          this.sandPixels[i + 2] = Math.max(0, Math.min(255, SAND_BASE[2] + n));
           this.sandPixels[i + 3] = 255;
         } else {
-          this.sandPixels[i] = 0x3a;
+          this.sandPixels[i]     = 0x3a;
           this.sandPixels[i + 1] = 0x3a;
           this.sandPixels[i + 2] = 0x36;
           this.sandPixels[i + 3] = 255;
@@ -107,13 +121,55 @@ export class GardenScene extends Phaser.Scene {
     this.sandDirty = true;
   }
 
-  syncSandToCanvas() {
+  // --- LOD: dirty-rect partial sync vs full sync ---
+  resetDirtyRect() {
+    this.dirtyRect.x1 = Infinity;
+    this.dirtyRect.y1 = Infinity;
+    this.dirtyRect.x2 = -Infinity;
+    this.dirtyRect.y2 = -Infinity;
+  }
+
+  expandDirty(x, y) {
+    if (x < this.dirtyRect.x1) this.dirtyRect.x1 = x;
+    if (y < this.dirtyRect.y1) this.dirtyRect.y1 = y;
+    if (x + 1 > this.dirtyRect.x2) this.dirtyRect.x2 = x + 1;
+    if (y + 1 > this.dirtyRect.y2) this.dirtyRect.y2 = y + 1;
+  }
+
+  hasDirtyRect() {
+    return this.dirtyRect.x2 > this.dirtyRect.x1 && this.dirtyRect.y2 > this.dirtyRect.y1;
+  }
+
+  syncSandToCanvas(forceFullSync = false) {
     const ctx = this.sandTexture.context;
-    const imageData = ctx.createImageData(W, SAND_H);
-    imageData.data.set(this.sandPixels);
-    ctx.putImageData(imageData, 0, 0);
+
+    if (!forceFullSync && this.hasDirtyRect()) {
+      const x1 = Math.max(0, this.dirtyRect.x1);
+      const y1 = Math.max(0, this.dirtyRect.y1);
+      const x2 = Math.min(W, this.dirtyRect.x2);
+      const y2 = Math.min(SAND_H, this.dirtyRect.y2);
+      const dw = x2 - x1;
+      const dh = y2 - y1;
+
+      if (dw > 0 && dh > 0) {
+        const imageData = ctx.createImageData(dw, dh);
+        const dst = imageData.data;
+        for (let row = 0; row < dh; row++) {
+          const srcStart = ((y1 + row) * W + x1) * 4;
+          const dstStart = row * dw * 4;
+          dst.set(this.sandPixels.subarray(srcStart, srcStart + dw * 4), dstStart);
+        }
+        ctx.putImageData(imageData, x1, y1);
+      }
+    } else {
+      const imageData = ctx.createImageData(W, SAND_H);
+      imageData.data.set(this.sandPixels);
+      ctx.putImageData(imageData, 0, 0);
+    }
+
     this.sandTexture.refresh();
     this.sandDirty = false;
+    this.resetDirtyRect();
   }
 
   // --- Border ---
@@ -125,7 +181,7 @@ export class GardenScene extends Phaser.Scene {
     const rx = W * 0.42;
     const ry = SAND_H * 0.42;
     const points = [];
-    const steps = 200;
+    const steps = 200 * SAND_SCALE;
 
     for (let s = 0; s < steps; s++) {
       const angle = (s / steps) * Math.PI * 2;
@@ -141,7 +197,7 @@ export class GardenScene extends Phaser.Scene {
       });
     }
 
-    gfx.lineStyle(5, 0x888880, 1);
+    gfx.lineStyle(5 * SAND_SCALE, 0x888880, 1);
     gfx.beginPath();
     gfx.moveTo(points[0].x, points[0].y);
     for (let i = 1; i < points.length; i++) {
@@ -153,12 +209,12 @@ export class GardenScene extends Phaser.Scene {
     for (let i = 0; i < points.length; i++) {
       if (Math.random() < 0.4) {
         const p = points[i];
-        const ox = (Math.random() - 0.5) * 6;
-        const oy = (Math.random() - 0.5) * 6;
+        const ox = (Math.random() - 0.5) * 6 * SAND_SCALE;
+        const oy = (Math.random() - 0.5) * 6 * SAND_SCALE;
         const green = 0x40 + Math.floor(Math.random() * 0x30);
         const color = (0x20 << 16) | (green << 8) | 0x10;
         gfx.fillStyle(color, 0.8);
-        gfx.fillCircle(p.x + ox, p.y + oy, 1 + Math.random() * 1.5);
+        gfx.fillCircle(p.x + ox, p.y + oy, (1 + Math.random() * 1.5) * SAND_SCALE);
       }
     }
   }
@@ -169,8 +225,8 @@ export class GardenScene extends Phaser.Scene {
     const gfx = this.add.graphics();
     gfx.fillStyle(0x4a3728, 1);
     gfx.fillRect(0, y, W, TOOLBAR_H);
-    gfx.lineStyle(1, 0x3d2e1f, 0.3);
-    for (let ly = y + 5; ly < y + TOOLBAR_H; ly += 6) {
+    gfx.lineStyle(SAND_SCALE, 0x3d2e1f, 0.3);
+    for (let ly = y + 5 * SAND_SCALE; ly < y + TOOLBAR_H; ly += 6 * SAND_SCALE) {
       gfx.beginPath();
       gfx.moveTo(0, ly);
       gfx.lineTo(W, ly);
@@ -178,15 +234,15 @@ export class GardenScene extends Phaser.Scene {
     }
 
     const tools = ['RAKE', 'ROCK', 'SHRUB', 'TEAHOUSE', 'CLEAR', 'SOUND'];
-    const btnW = 70;
+    const btnW = 70 * SAND_SCALE;
     const gap = (W - tools.length * btnW) / (tools.length + 1);
 
     this.toolButtons = [];
 
     tools.forEach((name, idx) => {
       const bx = gap + idx * (btnW + gap);
-      const by = y + 4;
-      const bh = TOOLBAR_H - 8;
+      const by = y + 4 * SAND_SCALE;
+      const bh = TOOLBAR_H - 8 * SAND_SCALE;
 
       const bg = this.add.graphics();
       const isActive = name === this.activeTool;
@@ -194,7 +250,7 @@ export class GardenScene extends Phaser.Scene {
 
       const label = this.add.text(bx + btnW / 2, by + bh / 2, name, {
         fontFamily: 'monospace',
-        fontSize: '10px',
+        fontSize: `${10 * SAND_SCALE}px`,
         color: isActive ? '#4a3728' : '#c8b898',
         fontStyle: 'bold',
       });
@@ -214,7 +270,7 @@ export class GardenScene extends Phaser.Scene {
   drawButton(gfx, x, y, w, h, active) {
     gfx.clear();
     gfx.fillStyle(active ? 0xe8dcbc : 0x5c4433, 1);
-    gfx.fillRoundedRect(x, y, w, h, 3);
+    gfx.fillRoundedRect(x, y, w, h, 3 * SAND_SCALE);
   }
 
   selectTool(name) {
@@ -237,7 +293,7 @@ export class GardenScene extends Phaser.Scene {
 
   clearSand() {
     this.fillSand();
-    this.syncSandToCanvas();
+    this.syncSandToCanvas(true);
   }
 
   // --- Sound Settings Dialog ---
@@ -358,7 +414,7 @@ export class GardenScene extends Phaser.Scene {
     soundBtn.bg.clear();
     soundBtn.bg.fillStyle(anyEnabled ? 0x607860 : 0x5c4433, 1);
     soundBtn.bg.fillRoundedRect(
-      soundBtn.bx, soundBtn.by, soundBtn.btnW, soundBtn.bh, 3
+      soundBtn.bx, soundBtn.by, soundBtn.btnW, soundBtn.bh, 3 * SAND_SCALE
     );
     soundBtn.label.setColor(anyEnabled ? '#e8dcbc' : '#886655');
   }
@@ -421,6 +477,16 @@ export class GardenScene extends Phaser.Scene {
 
     const halfWidth = ((TINE_COUNT - 1) * TINE_SPACING) / 2;
 
+    const margin = halfWidth + GROOVE_HW + RIDGE_W + 2;
+    this.expandDirty(
+      Math.floor(Math.min(from.x, to.x) - margin),
+      Math.floor(Math.min(from.y, to.y) - margin)
+    );
+    this.expandDirty(
+      Math.ceil(Math.max(from.x, to.x) + margin),
+      Math.ceil(Math.max(from.y, to.y) + margin)
+    );
+
     for (let s = 0; s <= steps; s++) {
       const cx = from.x + nx * s;
       const cy = from.y + ny * s;
@@ -430,15 +496,35 @@ export class GardenScene extends Phaser.Scene {
         const tx = Math.floor(cx + px * offset);
         const ty = Math.floor(cy + py * offset);
 
-        if (!this.isInGarden(tx, ty)) continue;
+        for (let g = -GROOVE_HW; g <= GROOVE_HW; g++) {
+          const gx = Math.floor(tx + px * g);
+          const gy = Math.floor(ty + py * g);
+          if (!this.isInGarden(gx, gy)) continue;
+          const depth = 1 - Math.abs(g) / (GROOVE_HW + 1);
+          const darken = depth * 12;
+          this.setSandPixel(gx, gy, [
+            GROOVE_COLOR[0] - darken,
+            GROOVE_COLOR[1] - darken,
+            GROOVE_COLOR[2] - darken,
+          ]);
+        }
 
-        this.setSandPixel(tx, ty, GROOVE_COLOR);
-        const rx1 = Math.floor(tx + px);
-        const ry1 = Math.floor(ty + py);
-        const rx2 = Math.floor(tx - px);
-        const ry2 = Math.floor(ty - py);
-        if (this.isInGarden(rx1, ry1)) this.setSandPixel(rx1, ry1, RIDGE_COLOR);
-        if (this.isInGarden(rx2, ry2)) this.setSandPixel(rx2, ry2, RIDGE_COLOR);
+        for (let r = 1; r <= RIDGE_W; r++) {
+          const fade = 1 - (r - 1) / RIDGE_W;
+          const rc = [
+            SAND_BASE[0] + (RIDGE_COLOR[0] - SAND_BASE[0]) * fade,
+            SAND_BASE[1] + (RIDGE_COLOR[1] - SAND_BASE[1]) * fade,
+            SAND_BASE[2] + (RIDGE_COLOR[2] - SAND_BASE[2]) * fade,
+          ];
+
+          const rx1 = Math.floor(tx + px * (GROOVE_HW + r));
+          const ry1 = Math.floor(ty + py * (GROOVE_HW + r));
+          const rx2 = Math.floor(tx - px * (GROOVE_HW + r));
+          const ry2 = Math.floor(ty - py * (GROOVE_HW + r));
+
+          if (this.isInGarden(rx1, ry1)) this.setSandPixel(rx1, ry1, rc);
+          if (this.isInGarden(rx2, ry2)) this.setSandPixel(rx2, ry2, rc);
+        }
       }
     }
     this.sandDirty = true;
@@ -463,7 +549,7 @@ export class GardenScene extends Phaser.Scene {
       key = this.createTeahouseTexture();
     }
     const sprite = this.add.image(x, y, key);
-    sprite.setScale(2);
+    sprite.setScale(2 * SAND_SCALE);
     sprite.setInteractive({ draggable: true, useHandCursor: true });
 
     this.input.setDraggable(sprite);
@@ -561,37 +647,25 @@ export class GardenScene extends Phaser.Scene {
       d[i + 3] = 255;
     };
 
-    // Roof colors (dark gray tiles)
     const roofBase = [0x45, 0x45, 0x50];
     const roofHighlight = [0x60, 0x60, 0x68];
-    
-    // Wall colors (warm wood)
     const wallBase = [0x8b, 0x6b, 0x4a];
     const wallDark = [0x6a, 0x52, 0x3a];
-    
-    // Floor/base color
     const floorColor = [0x5a, 0x48, 0x38];
-    
-    // Door color (darker)
     const doorColor = [0x3a, 0x2a, 0x20];
 
-    // Draw curved roof (Japanese style)
     for (let py = 0; py < 9; py++) {
       for (let px = 0; px < w; px++) {
-        // Calculate roof curve - wider at bottom, narrower at top
-        const roofCenterY = 5;
         const roofWidth = w / 2 + (8 - py) * 0.8;
         const centerX = w / 2;
         const distFromCenter = Math.abs(px - centerX);
-        
+
         if (distFromCenter <= roofWidth) {
-          // Curved shape - parabolic
           const normalizedX = distFromCenter / roofWidth;
           const curveHeight = py + normalizedX * normalizedX * 3;
-          
+
           if (curveHeight >= py && curveHeight < py + 1.5) {
             const noise = Math.floor((Math.random() - 0.5) * 10);
-            // Add some highlight on top
             if (py < 3) {
               setPixel(px, py, roofHighlight[0] + noise, roofHighlight[1] + noise, roofHighlight[2] + noise);
             } else {
@@ -601,18 +675,15 @@ export class GardenScene extends Phaser.Scene {
         }
       }
     }
-    
-    // Roof overhang edges
+
     for (let px = 2; px < w - 2; px++) {
       const noise = Math.floor((Math.random() - 0.5) * 8);
       setPixel(px, 8, roofBase[0] - 10 + noise, roofBase[1] - 10 + noise, roofBase[2] + noise);
     }
 
-    // Draw walls
     for (let py = 9; py < 17; py++) {
       for (let px = 4; px < w - 4; px++) {
         const noise = Math.floor((Math.random() - 0.5) * 15);
-        // Left and right edges are darker (depth)
         if (px < 6 || px >= w - 6) {
           setPixel(px, py, wallDark[0] + noise, wallDark[1] + noise, wallDark[2] + noise);
         } else {
@@ -620,8 +691,7 @@ export class GardenScene extends Phaser.Scene {
         }
       }
     }
-    
-    // Draw door in center
+
     const doorLeft = Math.floor(w / 2) - 2;
     const doorRight = Math.floor(w / 2) + 2;
     for (let py = 11; py < 17; py++) {
@@ -630,9 +700,8 @@ export class GardenScene extends Phaser.Scene {
         setPixel(px, py, doorColor[0] + noise, doorColor[1] + noise, doorColor[2] + noise);
       }
     }
-    
-    // Draw small window on each side
-    const windowColor = [0x2a, 0x3a, 0x4a]; // Dark blue-ish
+
+    const windowColor = [0x2a, 0x3a, 0x4a];
     for (let py = 11; py < 14; py++) {
       for (let px = 6; px < 9; px++) {
         setPixel(px, py, windowColor[0], windowColor[1], windowColor[2]);
@@ -642,7 +711,6 @@ export class GardenScene extends Phaser.Scene {
       }
     }
 
-    // Draw floor/foundation
     for (let px = 3; px < w - 3; px++) {
       const noise = Math.floor((Math.random() - 0.5) * 10);
       setPixel(px, 17, floorColor[0] + noise, floorColor[1] + noise, floorColor[2] + noise);
