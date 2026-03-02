@@ -6,11 +6,350 @@
   <title>Zen Garden</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background: #1a1a1a; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
-    canvas { image-rendering: pixelated; }
+    body { 
+      background: #1a1a1a; 
+      overflow: hidden;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+    }
+    #canvas-container {
+      width: 100vw;
+      height: 100vh;
+    }
+    canvas { 
+      display: block;
+    }
+    
+    /* UI Overlay */
+    .ui-overlay {
+      position: fixed;
+      z-index: 100;
+      pointer-events: none;
+    }
+    .ui-overlay > * {
+      pointer-events: auto;
+    }
+    
+    /* Top bar */
+    .top-bar {
+      top: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: center;
+      padding: 12px;
+      gap: 8px;
+    }
+    
+    /* Camera mode toggle */
+    .mode-toggle {
+      display: flex;
+      background: rgba(30, 30, 30, 0.85);
+      border-radius: 24px;
+      padding: 4px;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .mode-btn {
+      padding: 8px 16px;
+      border: none;
+      background: transparent;
+      color: #888;
+      cursor: pointer;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+    .mode-btn:hover {
+      color: #ccc;
+    }
+    .mode-btn.active {
+      background: linear-gradient(135deg, #5a7f5a, #4a6a4a);
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+    
+    /* Tool bar */
+    .toolbar {
+      bottom: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: center;
+      padding: 16px;
+      gap: 8px;
+    }
+    .tool-group {
+      display: flex;
+      background: rgba(30, 30, 30, 0.85);
+      border-radius: 12px;
+      padding: 6px;
+      gap: 4px;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .tool-btn {
+      padding: 10px 14px;
+      border: none;
+      background: transparent;
+      color: #aaa;
+      cursor: pointer;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 500;
+      transition: all 0.15s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .tool-btn:hover {
+      background: rgba(255,255,255,0.1);
+      color: #fff;
+    }
+    .tool-btn.active {
+      background: rgba(210, 196, 160, 0.9);
+      color: #333;
+    }
+    .tool-btn.action {
+      color: #7a9a7a;
+    }
+    .tool-btn.action:hover {
+      background: rgba(122, 154, 122, 0.2);
+    }
+    
+    /* Contemplation panel */
+    .contemplation-panel {
+      left: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(30, 30, 30, 0.9);
+      border-radius: 12px;
+      padding: 12px;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.1);
+      display: none;
+      flex-direction: column;
+      gap: 8px;
+      max-width: 180px;
+    }
+    .contemplation-panel.visible {
+      display: flex;
+    }
+    .panel-title {
+      color: #888;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 0 4px 4px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .preset-btn {
+      padding: 8px 12px;
+      border: none;
+      background: rgba(255,255,255,0.05);
+      color: #aaa;
+      cursor: pointer;
+      border-radius: 6px;
+      font-size: 11px;
+      text-align: left;
+      transition: all 0.15s ease;
+    }
+    .preset-btn:hover {
+      background: rgba(255,255,255,0.1);
+      color: #fff;
+    }
+    .preset-btn.active {
+      background: rgba(122, 154, 122, 0.3);
+      color: #b5d4b5;
+    }
+    
+    /* Photo panel */
+    .photo-panel {
+      right: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(30, 30, 30, 0.9);
+      border-radius: 12px;
+      padding: 12px;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.1);
+      display: none;
+      flex-direction: column;
+      gap: 8px;
+      width: 160px;
+    }
+    .photo-panel.visible {
+      display: flex;
+    }
+    .photo-btn {
+      padding: 10px 14px;
+      border: none;
+      background: rgba(255,255,255,0.08);
+      color: #ccc;
+      cursor: pointer;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 500;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .photo-btn:hover {
+      background: rgba(255,255,255,0.15);
+      color: #fff;
+    }
+    .photo-btn.primary {
+      background: linear-gradient(135deg, #5a7f5a, #4a6a4a);
+      color: #fff;
+    }
+    .photo-btn.primary:hover {
+      background: linear-gradient(135deg, #6a9f6a, #5a7a5a);
+    }
+    .photo-icon {
+      font-size: 16px;
+    }
+    
+    /* Controls hint */
+    .controls-hint {
+      right: 16px;
+      bottom: 80px;
+      background: rgba(30, 30, 30, 0.8);
+      border-radius: 8px;
+      padding: 10px 14px;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.1);
+      display: none;
+      font-size: 11px;
+      color: #888;
+      line-height: 1.6;
+    }
+    .controls-hint.visible {
+      display: block;
+    }
+    .controls-hint kbd {
+      background: rgba(255,255,255,0.1);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #bbb;
+      margin: 0 2px;
+    }
+    
+    /* Photo preview modal */
+    .photo-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.9);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .photo-modal.visible {
+      display: flex;
+    }
+    .photo-preview {
+      max-width: 90vw;
+      max-height: 70vh;
+      border-radius: 8px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    }
+    .photo-actions {
+      display: flex;
+      gap: 12px;
+    }
+    .photo-modal-btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .photo-modal-btn.save {
+      background: linear-gradient(135deg, #5a7f5a, #4a6a4a);
+      color: #fff;
+    }
+    .photo-modal-btn.share {
+      background: linear-gradient(135deg, #5a6a8f, #4a5a7a);
+      color: #fff;
+    }
+    .photo-modal-btn.close {
+      background: rgba(255,255,255,0.1);
+      color: #aaa;
+    }
+    .photo-modal-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
   </style>
 </head>
 <body>
+  <div id="canvas-container"></div>
+  
+  <!-- Camera Mode Toggle -->
+  <div class="ui-overlay top-bar">
+    <div class="mode-toggle">
+      <button class="mode-btn active" data-mode="isometric">Isometric</button>
+      <button class="mode-btn" data-mode="contemplation">Contemplation</button>
+    </div>
+  </div>
+  
+  <!-- Contemplation Mode Panel -->
+  <div class="ui-overlay contemplation-panel" id="contemplation-panel">
+    <div class="panel-title">Vantage Points</div>
+    <button class="preset-btn" data-preset="0">Garden Edge</button>
+    <button class="preset-btn" data-preset="1">Peaceful Corner</button>
+    <button class="preset-btn" data-preset="2">Stone Path View</button>
+    <button class="preset-btn" data-preset="3">Shrub Perspective</button>
+    <button class="preset-btn" data-preset="4">Low Angle</button>
+    <button class="preset-btn" data-preset="5">Free Camera</button>
+  </div>
+  
+  <!-- Photo Panel -->
+  <div class="ui-overlay photo-panel" id="photo-panel">
+    <div class="panel-title">Photography</div>
+    <button class="photo-btn primary" id="capture-btn">
+      <span class="photo-icon">📷</span> Capture
+    </button>
+  </div>
+  
+  <!-- Controls Hint -->
+  <div class="ui-overlay controls-hint" id="controls-hint">
+    <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> Move<br>
+    <kbd>Q</kbd><kbd>E</kbd> Up / Down<br>
+    <kbd>Mouse</kbd> Look around<br>
+    <kbd>Shift</kbd> Move faster
+  </div>
+  
+  <!-- Tool Bar -->
+  <div class="ui-overlay toolbar">
+    <div class="tool-group">
+      <button class="tool-btn active" data-tool="RAKE">Rake</button>
+      <button class="tool-btn" data-tool="ROCK">Rock</button>
+      <button class="tool-btn" data-tool="SHRUB">Shrub</button>
+    </div>
+    <div class="tool-group">
+      <button class="tool-btn action" data-action="clear">Clear</button>
+      <button class="tool-btn action" data-action="sound">Sound</button>
+    </div>
+  </div>
+  
+  <!-- Photo Preview Modal -->
+  <div class="photo-modal" id="photo-modal">
+    <img class="photo-preview" id="photo-preview" src="" alt="Garden Photo">
+    <div class="photo-actions">
+      <button class="photo-modal-btn save" id="save-photo-btn">Save Photo</button>
+      <button class="photo-modal-btn share" id="share-photo-btn">Share</button>
+      <button class="photo-modal-btn close" id="close-modal-btn">Close</button>
+    </div>
+  </div>
+  
   <script type="module" src="/src/main.js"></script>
 </body>
 </html>
