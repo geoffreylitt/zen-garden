@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { KoiPond } from '../objects/KoiPond.js';
 
 const W = 480;
 const H = 360;
@@ -37,7 +38,11 @@ export class GardenScene extends Phaser.Scene {
       wind:    { enabled: true, volume: 0.6, gain: null, maxGain: 0.06 },
       chimes:  { enabled: true, volume: 0.5, gain: null, maxGain: 0.12 },
       cicadas: { enabled: true, volume: 0.4, gain: null, maxGain: 0.05 },
+      water:   { enabled: false, volume: 0.5, gain: null, maxGain: 0.04 },
     };
+
+    this.ponds = [];
+    this.pondShapeIndex = 0;
   }
 
   create() {
@@ -177,8 +182,8 @@ export class GardenScene extends Phaser.Scene {
       gfx.strokePath();
     }
 
-    const tools = ['RAKE', 'ROCK', 'SHRUB', 'TEAHOUSE', 'CLEAR', 'SOUND'];
-    const btnW = 70;
+    const tools = ['RAKE', 'ROCK', 'SHRUB', 'POND', 'TEAHOUSE', 'CLEAR', 'SOUND'];
+    const btnW = 62;
     const gap = (W - tools.length * btnW) / (tools.length + 1);
 
     this.toolButtons = [];
@@ -278,6 +283,7 @@ export class GardenScene extends Phaser.Scene {
       { key: 'wind', label: 'Wind' },
       { key: 'chimes', label: 'Chimes' },
       { key: 'cicadas', label: 'Cicadas' },
+      { key: 'water', label: 'Water' },
     ];
 
     layers.forEach(({ key, label }) => {
@@ -378,6 +384,13 @@ export class GardenScene extends Phaser.Scene {
             0.06, this.audioCtx.currentTime + 0.1
           );
         }
+      } else if (this.activeTool === 'POND') {
+        const gx = Math.floor(pointer.x);
+        const gy = Math.floor(pointer.y);
+        if (this.isInGarden(gx, gy)) {
+          this.placePond(pointer.x, pointer.y);
+          this.playPlaceSound();
+        }
       } else if (this.activeTool === 'ROCK' || this.activeTool === 'SHRUB' || this.activeTool === 'TEAHOUSE') {
         const gx = Math.floor(pointer.x);
         const gy = Math.floor(pointer.y);
@@ -475,6 +488,22 @@ export class GardenScene extends Phaser.Scene {
     });
 
     this.placedItems.push(sprite);
+  }
+
+  placePond(x, y) {
+    const shapes = ['circular', 'oval', 'irregular'];
+    const shape = shapes[this.pondShapeIndex % shapes.length];
+    this.pondShapeIndex++;
+
+    const pond = new KoiPond(this, x, y, shape);
+    this.ponds.push(pond);
+    this.placedItems.push(pond.container);
+
+    if (this.ponds.length === 1 && this.audioCtx) {
+      this.soundLayers.water.enabled = true;
+      this.updateLayerGain('water');
+      this.updateSoundButtonVisual();
+    }
   }
 
   createRockTexture() {
@@ -664,6 +693,7 @@ export class GardenScene extends Phaser.Scene {
       this.setupWind();
       this.setupChimes();
       this.setupCicadas();
+      this.setupWaterSound();
       this.setupRakeSound();
     } catch (e) {
       // Web Audio not available
@@ -814,6 +844,43 @@ export class GardenScene extends Phaser.Scene {
     swell.start();
   }
 
+  setupWaterSound() {
+    const ctx = this.audioCtx;
+    const layer = this.soundLayers.water;
+
+    const bufferSize = ctx.sampleRate * 2;
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = Math.random() * 2 - 1;
+    }
+
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    source.loop = true;
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 400;
+    filter.Q.value = 0.8;
+
+    const lfo = ctx.createOscillator();
+    lfo.frequency.value = 0.12;
+    const lfoGain = ctx.createGain();
+    lfoGain.gain.value = 80;
+    lfo.connect(lfoGain);
+    lfoGain.connect(filter.frequency);
+
+    layer.gain = ctx.createGain();
+    layer.gain.gain.value = layer.enabled ? layer.volume * layer.maxGain : 0;
+
+    source.connect(filter);
+    filter.connect(layer.gain);
+    layer.gain.connect(ctx.destination);
+    source.start();
+    lfo.start();
+  }
+
   setupRakeSound() {
     const ctx = this.audioCtx;
     const bufferSize = ctx.sampleRate * 2;
@@ -856,9 +923,12 @@ export class GardenScene extends Phaser.Scene {
   }
 
   // --- Update Loop ---
-  update() {
+  update(_time, delta) {
     if (this.sandDirty) {
       this.syncSandToCanvas();
+    }
+    for (const pond of this.ponds) {
+      pond.update(delta);
     }
   }
 }
