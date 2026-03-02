@@ -463,7 +463,7 @@ export class GardenScene extends Phaser.Scene {
       key = this.createTeahouseTexture();
     }
     const sprite = this.add.image(x, y, key);
-    sprite.setScale(2);
+    sprite.setScale(type === 'ROCK' ? 6 : 2);
     sprite.setInteractive({ draggable: true, useHandCursor: true });
 
     this.input.setDraggable(sprite);
