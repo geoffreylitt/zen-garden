@@ -50,13 +50,14 @@ export class ZenGarden3D {
   
   init() {
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x2d3030);
+    this.scene.background = new THREE.Color(0xF5D0A0);
+    this.scene.fog = new THREE.FogExp2(0xF5D0A0, 0.018);
     
     this.camera = new THREE.PerspectiveCamera(
       45,
       this.width / this.height,
       0.1,
-      100
+      500
     );
     
     this.renderer = new THREE.WebGLRenderer({
@@ -67,6 +68,8 @@ export class ZenGarden3D {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.1;
     this.container.appendChild(this.renderer.domElement);
     
     this.cameraController = new CameraController(this.camera, this.renderer.domElement);
@@ -74,15 +77,18 @@ export class ZenGarden3D {
     this.setIsometricView();
     
     this.setupLighting();
+    this.createSkyDome();
+    this.createTempleBackground();
+    this.createCherryBlossoms();
     
     window.addEventListener('resize', () => this.onResize());
   }
   
   setupLighting() {
-    const ambient = new THREE.AmbientLight(0xffeedd, 0.4);
+    const ambient = new THREE.AmbientLight(0xFFE4C8, 0.5);
     this.scene.add(ambient);
     
-    const sunLight = new THREE.DirectionalLight(0xfff5e6, 1.0);
+    const sunLight = new THREE.DirectionalLight(0xFFF0D0, 1.2);
     sunLight.position.set(8, 15, 5);
     sunLight.castShadow = true;
     sunLight.shadow.mapSize.width = 2048;
@@ -96,11 +102,11 @@ export class ZenGarden3D {
     sunLight.shadow.bias = -0.001;
     this.scene.add(sunLight);
     
-    const fillLight = new THREE.DirectionalLight(0xaaccff, 0.3);
+    const fillLight = new THREE.DirectionalLight(0xC0D0E0, 0.25);
     fillLight.position.set(-5, 8, -5);
     this.scene.add(fillLight);
     
-    const hemi = new THREE.HemisphereLight(0x87ceeb, 0x3d3d36, 0.3);
+    const hemi = new THREE.HemisphereLight(0xE8CC99, 0x443830, 0.4);
     this.scene.add(hemi);
   }
   
@@ -153,9 +159,9 @@ export class ZenGarden3D {
   }
   
   createGround() {
-    const groundGeo = new THREE.PlaneGeometry(30, 30);
+    const groundGeo = new THREE.PlaneGeometry(100, 100);
     const groundMat = new THREE.MeshStandardMaterial({
-      color: 0x3a3a36,
+      color: 0x4A4236,
       roughness: 0.9,
       metalness: 0,
     });
@@ -272,8 +278,8 @@ export class ZenGarden3D {
           this.sandPixels[i + 2] = Math.max(0, Math.min(255, baseB + noise));
           this.sandPixels[i + 3] = 255;
         } else {
-          this.sandPixels[i] = 0x3a;
-          this.sandPixels[i + 1] = 0x3a;
+          this.sandPixels[i] = 0x4a;
+          this.sandPixels[i + 1] = 0x42;
           this.sandPixels[i + 2] = 0x36;
           this.sandPixels[i + 3] = 255;
         }
@@ -405,6 +411,381 @@ export class ZenGarden3D {
     }
     
     this.scene.add(this.borderGroup);
+  }
+  
+  createSkyDome() {
+    const skyGeo = new THREE.SphereGeometry(200, 32, 32);
+    const skyMat = new THREE.ShaderMaterial({
+      uniforms: {
+        topColor: { value: new THREE.Color(0x7799BB) },
+        horizonColor: { value: new THREE.Color(0xF5D0A0) },
+        offset: { value: 20 },
+        exponent: { value: 0.4 },
+      },
+      vertexShader: `
+        varying vec3 vWorldPosition;
+        void main() {
+          vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+          vWorldPosition = worldPosition.xyz;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform vec3 topColor;
+        uniform vec3 horizonColor;
+        uniform float offset;
+        uniform float exponent;
+        varying vec3 vWorldPosition;
+        void main() {
+          float h = normalize(vWorldPosition + vec3(0.0, offset, 0.0)).y;
+          float t = max(pow(max(h, 0.0), exponent), 0.0);
+          gl_FragColor = vec4(mix(horizonColor, topColor, t), 1.0);
+        }
+      `,
+      side: THREE.BackSide,
+      depthWrite: false,
+    });
+
+    const sky = new THREE.Mesh(skyGeo, skyMat);
+    this.scene.add(sky);
+  }
+  
+  createTempleBackground() {
+    this.backgroundGroup = new THREE.Group();
+    
+    this.backgroundGroup.add(this.createToriiGate(12, -18, Math.PI * 0.15, 1.0));
+    this.backgroundGroup.add(this.createToriiGate(-20, -12, -Math.PI * 0.3, 0.8));
+    this.backgroundGroup.add(this.createToriiGate(22, 8, Math.PI * 0.7, 1.2));
+    
+    this.backgroundGroup.add(this.createPagoda(-28, -25, Math.PI * 0.2, 1.0));
+    this.backgroundGroup.add(this.createPagoda(30, -20, -Math.PI * 0.15, 0.7));
+    
+    const treePositions = [
+      [15, -15], [-18, -8], [18, 12], [-12, 18],
+      [-25, -15], [25, 5], [-20, 20], [8, -22],
+      [28, -10], [-30, 5], [10, 22], [-8, -25],
+      [-22, -20], [20, 18], [-15, 25], [30, 15],
+    ];
+    for (const [x, z] of treePositions) {
+      const scale = 0.5 + Math.random() * 0.7;
+      const isCherryBlossom = Math.random() < 0.35;
+      this.backgroundGroup.add(this.createBackgroundTree(x, z, scale, isCherryBlossom));
+    }
+    
+    this.backgroundGroup.add(this.createStoneLantern(6.5, -5.5, 0.7));
+    this.backgroundGroup.add(this.createStoneLantern(-6, 5, 0.6));
+    
+    this.scene.add(this.backgroundGroup);
+  }
+  
+  createToriiGate(x, z, rotY, scale) {
+    const group = new THREE.Group();
+    const mat = new THREE.MeshStandardMaterial({
+      color: 0xCC3333,
+      roughness: 0.6,
+      metalness: 0.05,
+    });
+
+    const h = 3.5 * scale;
+    const r = 0.08 * scale;
+    const spacing = 2.2 * scale;
+
+    const pillarGeo = new THREE.CylinderGeometry(r, r * 1.15, h, 8);
+    const left = new THREE.Mesh(pillarGeo, mat);
+    left.position.set(-spacing / 2, h / 2, 0);
+    left.castShadow = true;
+    group.add(left);
+
+    const right = new THREE.Mesh(pillarGeo, mat);
+    right.position.set(spacing / 2, h / 2, 0);
+    right.castShadow = true;
+    group.add(right);
+
+    const kasagiW = spacing + 0.8 * scale;
+    const kasagiGeo = new THREE.BoxGeometry(kasagiW, r * 2.5, r * 4);
+    const kasagi = new THREE.Mesh(kasagiGeo, mat);
+    kasagi.position.set(0, h + r, 0);
+    kasagi.castShadow = true;
+    group.add(kasagi);
+
+    const shimakiGeo = new THREE.BoxGeometry(kasagiW * 0.95, r * 1.2, r * 2.5);
+    const shimaki = new THREE.Mesh(shimakiGeo, mat);
+    shimaki.position.set(0, h - r * 0.5, 0);
+    group.add(shimaki);
+
+    const nukiGeo = new THREE.BoxGeometry(spacing * 1.1, r * 1.8, r * 2);
+    const nuki = new THREE.Mesh(nukiGeo, mat);
+    nuki.position.set(0, h * 0.7, 0);
+    group.add(nuki);
+
+    group.position.set(x, 0, z);
+    group.rotation.y = rotY;
+    return group;
+  }
+  
+  createPagoda(x, z, rotY, scale) {
+    const group = new THREE.Group();
+    const woodMat = new THREE.MeshStandardMaterial({
+      color: 0x4A3828,
+      roughness: 0.85,
+      metalness: 0,
+    });
+    const roofMat = new THREE.MeshStandardMaterial({
+      color: 0x2A2520,
+      roughness: 0.8,
+      metalness: 0.05,
+    });
+
+    const tiers = 3;
+    let y = 0;
+
+    const baseGeo = new THREE.BoxGeometry(4 * scale, 0.3 * scale, 4 * scale);
+    const base = new THREE.Mesh(baseGeo, woodMat);
+    base.position.y = 0.15 * scale;
+    base.castShadow = true;
+    base.receiveShadow = true;
+    group.add(base);
+    y = 0.3 * scale;
+
+    for (let t = 0; t < tiers; t++) {
+      const tierScale = 1 - t * 0.22;
+      const wallH = 1.5 * scale * tierScale;
+      const wallW = 3 * scale * tierScale;
+
+      const wallGeo = new THREE.BoxGeometry(wallW, wallH, wallW);
+      const wall = new THREE.Mesh(wallGeo, woodMat);
+      wall.position.y = y + wallH / 2;
+      wall.castShadow = true;
+      group.add(wall);
+      y += wallH;
+
+      const roofW = wallW * 1.45;
+      const roofGeo = new THREE.BoxGeometry(roofW, 0.12 * scale, roofW);
+      const roof = new THREE.Mesh(roofGeo, roofMat);
+      roof.position.y = y + 0.06 * scale;
+      roof.castShadow = true;
+      group.add(roof);
+
+      const eaveGeo = new THREE.BoxGeometry(roofW * 1.05, 0.05 * scale, roofW * 1.05);
+      const eave = new THREE.Mesh(eaveGeo, roofMat);
+      eave.position.y = y - 0.02 * scale;
+      group.add(eave);
+
+      y += 0.12 * scale;
+    }
+
+    const spireH = 1.5 * scale;
+    const spireGeo = new THREE.ConeGeometry(0.15 * scale, spireH, 4);
+    const spire = new THREE.Mesh(spireGeo, roofMat);
+    spire.position.y = y + spireH / 2;
+    spire.rotation.y = Math.PI / 4;
+    spire.castShadow = true;
+    group.add(spire);
+
+    group.position.set(x, 0, z);
+    group.rotation.y = rotY;
+    return group;
+  }
+  
+  createBackgroundTree(x, z, scale, cherryBlossom = false) {
+    const group = new THREE.Group();
+
+    const trunkMat = new THREE.MeshStandardMaterial({
+      color: cherryBlossom ? 0x5A3A2A : 0x4A3A2A,
+      roughness: 0.9,
+    });
+    const trunkH = (1.5 + Math.random() * 1.5) * scale;
+    const trunkR = 0.06 * scale;
+    const trunkGeo = new THREE.CylinderGeometry(trunkR * 0.7, trunkR, trunkH, 6);
+    const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+    trunk.position.y = trunkH / 2;
+    group.add(trunk);
+
+    let foliageColor;
+    if (cherryBlossom) {
+      foliageColor = new THREE.Color().setHSL(
+        0.95 + Math.random() * 0.03,
+        0.35 + Math.random() * 0.15,
+        0.65 + Math.random() * 0.15
+      );
+    } else {
+      foliageColor = new THREE.Color().setHSL(
+        0.28 + Math.random() * 0.08,
+        0.3 + Math.random() * 0.1,
+        0.18 + Math.random() * 0.1
+      );
+    }
+
+    const foliageMat = new THREE.MeshStandardMaterial({
+      color: foliageColor,
+      roughness: 0.9,
+    });
+
+    const layers = 2 + Math.floor(Math.random() * 2);
+    for (let i = 0; i < layers; i++) {
+      const fSize = (0.4 + Math.random() * 0.35) * scale;
+      const fGeo = new THREE.SphereGeometry(fSize, 6, 5);
+      const foliage = new THREE.Mesh(fGeo, foliageMat);
+      foliage.position.set(
+        (Math.random() - 0.5) * 0.3 * scale,
+        trunkH + i * 0.35 * scale - 0.1 * scale,
+        (Math.random() - 0.5) * 0.3 * scale
+      );
+      foliage.scale.y = 0.6 + Math.random() * 0.3;
+      foliage.castShadow = true;
+      group.add(foliage);
+    }
+
+    group.position.set(x, 0, z);
+    return group;
+  }
+  
+  createStoneLantern(x, z, scale) {
+    const group = new THREE.Group();
+    const stoneMat = new THREE.MeshStandardMaterial({
+      color: 0x888878,
+      roughness: 0.85,
+      metalness: 0.05,
+    });
+
+    let y = 0;
+
+    const baseGeo = new THREE.CylinderGeometry(0.2 * scale, 0.25 * scale, 0.15 * scale, 6);
+    const base = new THREE.Mesh(baseGeo, stoneMat);
+    base.position.y = 0.075 * scale;
+    group.add(base);
+    y = 0.15 * scale;
+
+    const shaftH = 0.8 * scale;
+    const shaftGeo = new THREE.CylinderGeometry(0.07 * scale, 0.08 * scale, shaftH, 6);
+    const shaft = new THREE.Mesh(shaftGeo, stoneMat);
+    shaft.position.y = y + shaftH / 2;
+    group.add(shaft);
+    y += shaftH;
+
+    const lampH = 0.3 * scale;
+    const lampGeo = new THREE.BoxGeometry(0.25 * scale, lampH, 0.25 * scale);
+    const lamp = new THREE.Mesh(lampGeo, stoneMat);
+    lamp.position.y = y + lampH / 2;
+    group.add(lamp);
+    y += lampH;
+
+    const light = new THREE.PointLight(0xFFAA44, 0.5, 3 * scale);
+    light.position.y = y - lampH * 0.3;
+    group.add(light);
+
+    const roofGeo = new THREE.ConeGeometry(0.22 * scale, 0.2 * scale, 4);
+    const roof = new THREE.Mesh(roofGeo, stoneMat);
+    roof.position.y = y + 0.1 * scale;
+    roof.rotation.y = Math.PI / 4;
+    group.add(roof);
+
+    group.position.set(x, 0, z);
+    return group;
+  }
+  
+  createCherryBlossoms() {
+    const count = 250;
+    const positions = new Float32Array(count * 3);
+    const colors = new Float32Array(count * 3);
+
+    this.petalData = [];
+
+    for (let i = 0; i < count; i++) {
+      positions[i * 3] = (Math.random() - 0.5) * 40;
+      positions[i * 3 + 1] = Math.random() * 15 + 1;
+      positions[i * 3 + 2] = (Math.random() - 0.5) * 40;
+
+      const pink = Math.random();
+      if (pink < 0.5) {
+        colors[i * 3] = 0.95 + Math.random() * 0.05;
+        colors[i * 3 + 1] = 0.72 + Math.random() * 0.15;
+        colors[i * 3 + 2] = 0.78 + Math.random() * 0.15;
+      } else if (pink < 0.8) {
+        colors[i * 3] = 0.98;
+        colors[i * 3 + 1] = 0.90 + Math.random() * 0.08;
+        colors[i * 3 + 2] = 0.92 + Math.random() * 0.08;
+      } else {
+        colors[i * 3] = 0.92;
+        colors[i * 3 + 1] = 0.55 + Math.random() * 0.15;
+        colors[i * 3 + 2] = 0.65 + Math.random() * 0.15;
+      }
+
+      this.petalData.push({
+        drift: new THREE.Vector3(
+          (Math.random() - 0.5) * 0.4,
+          -(0.15 + Math.random() * 0.35),
+          (Math.random() - 0.5) * 0.4
+        ),
+        phase: Math.random() * Math.PI * 2,
+        wobbleSpeed: 1 + Math.random() * 2,
+        wobbleAmp: 0.3 + Math.random() * 0.5,
+      });
+    }
+
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+    const petalTexture = this.createPetalTexture();
+
+    const material = new THREE.PointsMaterial({
+      size: 0.15,
+      map: petalTexture,
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.85,
+      sizeAttenuation: true,
+      depthWrite: false,
+    });
+
+    this.cherryBlossoms = new THREE.Points(geometry, material);
+    this.scene.add(this.cherryBlossoms);
+  }
+  
+  createPetalTexture() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 32;
+    canvas.height = 32;
+    const ctx = canvas.getContext('2d');
+
+    const gradient = ctx.createRadialGradient(16, 16, 0, 16, 16, 16);
+    gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
+    gradient.addColorStop(0.4, 'rgba(255, 255, 255, 0.9)');
+    gradient.addColorStop(0.7, 'rgba(255, 255, 255, 0.4)');
+    gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, 32, 32);
+
+    return new THREE.CanvasTexture(canvas);
+  }
+  
+  updateCherryBlossoms(delta) {
+    if (!this.cherryBlossoms) return;
+
+    const positions = this.cherryBlossoms.geometry.attributes.position.array;
+    const count = positions.length / 3;
+    const elapsed = this.clock.elapsedTime;
+
+    const windX = Math.sin(elapsed * 0.3) * 0.15;
+    const windZ = Math.cos(elapsed * 0.2) * 0.1;
+
+    for (let i = 0; i < count; i++) {
+      const petal = this.petalData[i];
+      const wobble = Math.sin(elapsed * petal.wobbleSpeed + petal.phase);
+
+      positions[i * 3] += (petal.drift.x + windX + wobble * petal.wobbleAmp * 0.05) * delta;
+      positions[i * 3 + 1] += petal.drift.y * delta;
+      positions[i * 3 + 2] += (petal.drift.z + windZ + Math.cos(elapsed * petal.wobbleSpeed * 0.7 + petal.phase) * petal.wobbleAmp * 0.04) * delta;
+
+      if (positions[i * 3 + 1] < -0.5) {
+        positions[i * 3] = (Math.random() - 0.5) * 40;
+        positions[i * 3 + 1] = 12 + Math.random() * 5;
+        positions[i * 3 + 2] = (Math.random() - 0.5) * 40;
+      }
+    }
+
+    this.cherryBlossoms.geometry.attributes.position.needsUpdate = true;
   }
   
   createRock(worldX, worldZ) {
@@ -839,6 +1220,8 @@ export class ZenGarden3D {
       this.syncSandTexture();
       this.updateNormalMap();
     }
+    
+    this.updateCherryBlossoms(delta);
     
     this.renderer.render(this.scene, this.camera);
   }
