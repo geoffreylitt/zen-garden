@@ -1,3 +1,4 @@
+// Workflow test
 import Phaser from 'phaser';
 import { GardenScene } from './scenes/GardenScene.js';
 
