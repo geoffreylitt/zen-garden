@@ -27,6 +27,7 @@ export class GardenScene extends Phaser.Scene {
     this.sandPixels = null;
     this.sandDirty = false;
     this.placedItems = [];
+    this.mossItems = [];
     this.audioStarted = false;
     this.audioCtx = null;
     this.rakeGain = null;
@@ -177,8 +178,8 @@ export class GardenScene extends Phaser.Scene {
       gfx.strokePath();
     }
 
-    const tools = ['RAKE', 'ROCK', 'SHRUB', 'TEAHOUSE', 'CLEAR', 'SOUND'];
-    const btnW = 70;
+    const tools = ['RAKE', 'ROCK', 'SHRUB', 'MOSS', 'TEAHOUSE', 'CLEAR', 'SOUND'];
+    const btnW = 58;
     const gap = (W - tools.length * btnW) / (tools.length + 1);
 
     this.toolButtons = [];
@@ -194,7 +195,7 @@ export class GardenScene extends Phaser.Scene {
 
       const label = this.add.text(bx + btnW / 2, by + bh / 2, name, {
         fontFamily: 'monospace',
-        fontSize: '10px',
+        fontSize: '9px',
         color: isActive ? '#4a3728' : '#c8b898',
         fontStyle: 'bold',
       });
@@ -378,12 +379,16 @@ export class GardenScene extends Phaser.Scene {
             0.06, this.audioCtx.currentTime + 0.1
           );
         }
-      } else if (this.activeTool === 'ROCK' || this.activeTool === 'SHRUB' || this.activeTool === 'TEAHOUSE') {
+      } else if (this.activeTool === 'ROCK' || this.activeTool === 'SHRUB' || this.activeTool === 'TEAHOUSE' || this.activeTool === 'MOSS') {
         const gx = Math.floor(pointer.x);
         const gy = Math.floor(pointer.y);
         if (this.isInGarden(gx, gy)) {
           this.placeItem(this.activeTool, pointer.x, pointer.y);
-          this.playPlaceSound();
+          if (this.activeTool === 'MOSS') {
+            this.playMossPlaceSound();
+          } else {
+            this.playPlaceSound();
+          }
         }
       }
     });
@@ -452,7 +457,7 @@ export class GardenScene extends Phaser.Scene {
     this.sandPixels[i + 3] = 255;
   }
 
-  // --- Items (Rocks & Shrubs) ---
+  // --- Items (Rocks, Shrubs, Moss) ---
   placeItem(type, x, y) {
     let key;
     if (type === 'ROCK') {
@@ -461,11 +466,32 @@ export class GardenScene extends Phaser.Scene {
       key = this.createShrubTexture();
     } else if (type === 'TEAHOUSE') {
       key = this.createTeahouseTexture();
+    } else if (type === 'MOSS') {
+      key = this.createMossTexture();
     }
     const sprite = this.add.image(x, y, key);
-    sprite.setScale(2);
-    sprite.setInteractive({ draggable: true, useHandCursor: true });
+    sprite.itemType = type;
 
+    if (type === 'MOSS') {
+      sprite.setScale(0.4);
+      sprite.setDepth(5);
+      const growthData = {
+        sprite,
+        startTime: this.time.now,
+        growthDuration: 8000 + Math.random() * 7000,
+        baseScale: 0.4,
+        targetScale: 2.0,
+        growthProgress: 0,
+        stoneChecked: false,
+        accentsSpawned: false,
+      };
+      this.mossItems.push(growthData);
+    } else {
+      sprite.setScale(2);
+      sprite.setDepth(10);
+    }
+
+    sprite.setInteractive({ draggable: true, useHandCursor: true });
     this.input.setDraggable(sprite);
     sprite.on('drag', (_pointer, dragX, dragY) => {
       if (dragY < SAND_H) {
@@ -652,6 +678,249 @@ export class GardenScene extends Phaser.Scene {
     ctx.putImageData(imgData, 0, 0);
     tex.refresh();
     return id;
+  }
+
+  // --- Moss Textures ---
+  createMossTexture() {
+    const variant = Math.floor(Math.random() * 3);
+    if (variant === 0) return this.createFlatMossTexture();
+    if (variant === 1) return this.createCushionMossTexture();
+    return this.createWispyMossTexture();
+  }
+
+  createFlatMossTexture() {
+    const id = 'moss_flat_' + Date.now() + '_' + Math.random();
+    const w = 14 + Math.floor(Math.random() * 8);
+    const h = 10 + Math.floor(Math.random() * 6);
+    const tex = this.textures.createCanvas(id, w, h);
+    const ctx = tex.context;
+    const imgData = ctx.createImageData(w, h);
+    const d = imgData.data;
+
+    const cx = w / 2;
+    const cy = h / 2;
+    const baseR = 0x38 + Math.floor(Math.random() * 0x15);
+    const baseG = 0x6a + Math.floor(Math.random() * 0x20);
+    const baseB = 0x22 + Math.floor(Math.random() * 0x10);
+    const seed1 = Math.random() * 100;
+    const seed2 = Math.random() * 100;
+
+    for (let py = 0; py < h; py++) {
+      for (let px = 0; px < w; px++) {
+        const dx = (px - cx) / (w / 2);
+        const dy = (py - cy) / (h / 2);
+        const baseDist = dx * dx + dy * dy;
+        const angle = Math.atan2(dy, dx);
+        const noise = Math.sin(angle * 3 + seed1) * 0.15 +
+                       Math.sin(angle * 5 + seed2) * 0.1 +
+                       Math.sin(angle * 7 + seed1 * 2) * 0.08;
+        const dist = baseDist * (1 - noise);
+
+        if (dist <= 1.0) {
+          const i = (py * w + px) * 4;
+          const colorNoise = (Math.sin(px * 2.5 + seed1) * Math.cos(py * 3.1 + seed2)) * 15;
+          const patchVar = Math.random() * 12 - 6;
+          d[i] = Math.max(0, Math.min(255, baseR + colorNoise + patchVar));
+          d[i + 1] = Math.max(0, Math.min(255, baseG + colorNoise + patchVar));
+          d[i + 2] = Math.max(0, Math.min(255, baseB + colorNoise * 0.5 + patchVar));
+          if (dist > 0.6) {
+            const edgeFade = 1 - (dist - 0.6) / 0.4;
+            d[i + 3] = Math.floor(255 * edgeFade * edgeFade);
+          } else {
+            d[i + 3] = 255;
+          }
+        }
+      }
+    }
+
+    ctx.putImageData(imgData, 0, 0);
+    tex.refresh();
+    return id;
+  }
+
+  createCushionMossTexture() {
+    const id = 'moss_cushion_' + Date.now() + '_' + Math.random();
+    const size = 8 + Math.floor(Math.random() * 7);
+    const w = size;
+    const h = size;
+    const tex = this.textures.createCanvas(id, w, h);
+    const ctx = tex.context;
+    const imgData = ctx.createImageData(w, h);
+    const d = imgData.data;
+
+    const cx = w / 2;
+    const cy = h / 2;
+    const baseR = 0x1e + Math.floor(Math.random() * 0x12);
+    const baseG = 0x52 + Math.floor(Math.random() * 0x20);
+    const baseB = 0x15 + Math.floor(Math.random() * 0x10);
+    const seed = Math.random() * 100;
+
+    for (let py = 0; py < h; py++) {
+      for (let px = 0; px < w; px++) {
+        const dx = (px - cx) / (w / 2);
+        const dy = (py - cy) / (h / 2);
+        const dist = dx * dx + dy * dy;
+        const bumpNoise = Math.sin(px * 4 + seed) * Math.cos(py * 5 + seed) * 0.1;
+
+        if (dist + bumpNoise <= 1.0) {
+          const i = (py * w + px) * 4;
+          const heightFactor = 1 - dist;
+          const topLight = py < cy ? 0.15 : -0.1;
+          const brightness = heightFactor * 0.4 + topLight;
+          const bump = Math.sin(px * 6 + seed) * Math.cos(py * 7 + seed * 1.3) * 10;
+          const patchVar = Math.random() * 8 - 4;
+
+          d[i] = Math.max(0, Math.min(255, baseR + brightness * 30 + bump + patchVar));
+          d[i + 1] = Math.max(0, Math.min(255, baseG + brightness * 50 + bump + patchVar));
+          d[i + 2] = Math.max(0, Math.min(255, baseB + brightness * 20 + bump * 0.5 + patchVar));
+          if (dist > 0.5) {
+            const edgeFade = 1 - (dist - 0.5) / 0.5;
+            d[i + 3] = Math.floor(255 * Math.pow(edgeFade, 1.5));
+          } else {
+            d[i + 3] = 255;
+          }
+        }
+      }
+    }
+
+    ctx.putImageData(imgData, 0, 0);
+    tex.refresh();
+    return id;
+  }
+
+  createWispyMossTexture() {
+    const id = 'moss_wispy_' + Date.now() + '_' + Math.random();
+    const w = 16 + Math.floor(Math.random() * 10);
+    const h = 6 + Math.floor(Math.random() * 5);
+    const tex = this.textures.createCanvas(id, w, h);
+    const ctx = tex.context;
+    const imgData = ctx.createImageData(w, h);
+    const d = imgData.data;
+
+    const cx = w / 2;
+    const cy = h / 2;
+    const baseR = 0x45 + Math.floor(Math.random() * 0x18);
+    const baseG = 0x70 + Math.floor(Math.random() * 0x25);
+    const baseB = 0x28 + Math.floor(Math.random() * 0x12);
+    const seed1 = Math.random() * 100;
+    const seed2 = Math.random() * 100;
+
+    for (let py = 0; py < h; py++) {
+      for (let px = 0; px < w; px++) {
+        const dx = (px - cx) / (w / 2);
+        const dy = (py - cy) / (h / 2);
+        const dist = dx * dx + dy * dy;
+        const fillNoise = Math.sin(px * 3.2 + seed1) * Math.cos(py * 4.7 + seed2) +
+                           Math.sin(px * 1.7 + seed2) * 0.5;
+        const threshold = dist * 1.2 + fillNoise * 0.3;
+
+        if (dist <= 1.0 && threshold < 0.8) {
+          const i = (py * w + px) * 4;
+          const brownMix = Math.sin(px * 2 + seed1) > 0.5 ? 0.3 : 0;
+          const colorNoise = Math.random() * 15 - 7;
+          d[i] = Math.max(0, Math.min(255, baseR + brownMix * 20 + colorNoise));
+          d[i + 1] = Math.max(0, Math.min(255, baseG - brownMix * 15 + colorNoise));
+          d[i + 2] = Math.max(0, Math.min(255, baseB + brownMix * 5 + colorNoise));
+          const edgeStart = 0.3;
+          if (dist > edgeStart) {
+            const edgeFade = 1 - (dist - edgeStart) / (1.0 - edgeStart);
+            d[i + 3] = Math.floor(200 * edgeFade * edgeFade);
+          } else {
+            d[i + 3] = 200 + Math.floor(Math.random() * 55);
+          }
+        }
+      }
+    }
+
+    ctx.putImageData(imgData, 0, 0);
+    tex.refresh();
+    return id;
+  }
+
+  // --- Moss Growth ---
+  updateMossGrowth() {
+    const now = this.time.now;
+    for (const moss of this.mossItems) {
+      if (moss.growthProgress < 1) {
+        const elapsed = now - moss.startTime;
+        moss.growthProgress = Math.min(1, elapsed / moss.growthDuration);
+        const t = 1 - Math.pow(1 - moss.growthProgress, 3);
+        const scale = moss.baseScale + (moss.targetScale - moss.baseScale) * t;
+        moss.sprite.setScale(scale);
+      }
+
+      if (!moss.stoneChecked && moss.growthProgress > 0.3) {
+        moss.stoneChecked = true;
+        let nearStones = 0;
+        for (const item of this.placedItems) {
+          if (item.itemType === 'ROCK') {
+            const dx = item.x - moss.sprite.x;
+            const dy = item.y - moss.sprite.y;
+            if (Math.sqrt(dx * dx + dy * dy) < 70) nearStones++;
+          }
+        }
+        if (nearStones >= 2) {
+          moss.targetScale = 2.8;
+        } else if (nearStones >= 1) {
+          moss.targetScale = 2.4;
+        }
+      }
+
+      if (!moss.accentsSpawned && moss.growthProgress >= 0.8) {
+        moss.accentsSpawned = true;
+        this.spawnMossAccents(moss);
+      }
+    }
+  }
+
+  spawnMossAccents(parentMoss) {
+    const nearStones = [];
+    for (const item of this.placedItems) {
+      if (item.itemType === 'ROCK') {
+        const dx = item.x - parentMoss.sprite.x;
+        const dy = item.y - parentMoss.sprite.y;
+        if (Math.sqrt(dx * dx + dy * dy) < 80) nearStones.push(item);
+      }
+    }
+    if (nearStones.length === 0) return;
+
+    const count = 1 + Math.floor(Math.random() * 2);
+    for (let i = 0; i < count; i++) {
+      const stone = nearStones[Math.floor(Math.random() * nearStones.length)];
+      const dx = stone.x - parentMoss.sprite.x;
+      const dy = stone.y - parentMoss.sprite.y;
+      const t = 0.3 + Math.random() * 0.4;
+      const x = parentMoss.sprite.x + dx * t + (Math.random() - 0.5) * 15;
+      const y = parentMoss.sprite.y + dy * t + (Math.random() - 0.5) * 15;
+
+      if (!this.isInGarden(Math.floor(x), Math.floor(y))) continue;
+
+      const key = this.createMossTexture();
+      const sprite = this.add.image(x, y, key);
+      sprite.itemType = 'MOSS';
+      sprite.setScale(0.1);
+      sprite.setDepth(5);
+      sprite.setInteractive({ draggable: true, useHandCursor: true });
+      this.input.setDraggable(sprite);
+      sprite.on('drag', (_pointer, dragX, dragY) => {
+        if (dragY < SAND_H) {
+          sprite.x = dragX;
+          sprite.y = dragY;
+        }
+      });
+      this.placedItems.push(sprite);
+
+      this.mossItems.push({
+        sprite,
+        startTime: this.time.now + 2000 + i * 3000,
+        growthDuration: 8000 + Math.random() * 8000,
+        baseScale: 0.1,
+        targetScale: 0.6 + Math.random() * 0.4,
+        growthProgress: 0,
+        stoneChecked: true,
+        accentsSpawned: true,
+      });
+    }
   }
 
   // --- Audio ---
@@ -855,10 +1124,28 @@ export class GardenScene extends Phaser.Scene {
     osc.stop(ctx.currentTime + 0.2);
   }
 
+  playMossPlaceSound() {
+    if (!this.audioCtx) return;
+    const ctx = this.audioCtx;
+    const osc = ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.value = 220;
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.06, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.35);
+  }
+
   // --- Update Loop ---
   update() {
     if (this.sandDirty) {
       this.syncSandToCanvas();
+    }
+    if (this.mossItems.length > 0) {
+      this.updateMossGrowth();
     }
   }
 }
