@@ -6,6 +6,35 @@ export class RockTool {
     this.scene = scene;
     this.gardenMask = gardenMask;
     this.audio = audioManager;
+    this.preview = null;
+    this.previewKey = null;
+  }
+
+  activate() {
+    if (!this.previewKey) {
+      this.previewKey = createRockTexture(this.scene);
+    }
+    this.preview = this.scene.add.image(-100, -100, this.previewKey);
+    this.preview.setScale(2);
+    this.preview.setAlpha(0.45);
+    this.preview.setVisible(false);
+  }
+
+  deactivate() {
+    if (this.preview) {
+      this.preview.destroy();
+      this.preview = null;
+    }
+  }
+
+  onMove(pointer) {
+    if (!this.preview) return;
+    if (pointer.y >= SAND_H || !this.gardenMask.isInGarden(Math.floor(pointer.x), Math.floor(pointer.y))) {
+      this.preview.setVisible(false);
+      return;
+    }
+    this.preview.setPosition(pointer.x, pointer.y);
+    this.preview.setVisible(true);
   }
 
   onDown(pointer) {
@@ -25,6 +54,10 @@ export class RockTool {
         sprite.y = dragY;
       }
     });
+
+    if (this.preview) {
+      this.scene.children.bringToTop(this.preview);
+    }
 
     this.audio.playPlace();
   }

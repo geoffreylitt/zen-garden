@@ -58,8 +58,15 @@ export class GardenScene extends Phaser.Scene {
       this.soundDialog.open();
       return;
     }
+
+    const oldTool = this.tools[this.activeTool];
+    if (oldTool && oldTool.deactivate) oldTool.deactivate();
+
     this.activeTool = name;
     this.toolbar.setActiveTool(name);
+
+    const newTool = this.tools[name];
+    if (newTool && newTool.activate) newTool.activate();
   }
 
   setupInput() {
