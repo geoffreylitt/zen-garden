@@ -24,21 +24,30 @@ src/
 │   ├── WindLayer.js             # Filtered white noise wind ambience
 │   ├── ChimesLayer.js           # Random pentatonic chime scheduling
 │   ├── CicadasLayer.js          # Bandpass-filtered noise with LFO modulation
+│   ├── StreamLayer.js           # Flowing water ambient sound
+│   ├── ShishiOdoshiLayer.js     # Rhythmic bamboo clack and drip sound
+│   ├── TsukubaiLayer.js         # Stone basin water drip sound
 │   ├── RakeSound.js             # Raking interaction sound
 │   └── PlaceSound.js            # Item placement "plink" sound
 ├── tools/
 │   ├── RakeTool.js              # Multi-tine rake stroke logic
 │   ├── RockTool.js              # Rock placement
 │   ├── ShrubTool.js             # Shrub placement
-│   └── TeahouseTool.js          # Teahouse placement
+│   ├── TeahouseTool.js          # Teahouse placement
+│   ├── StreamTool.js            # Draw-to-place flowing stream
+│   ├── ShishiOdoshiTool.js      # Shishi-odoshi (deer scarer) placement
+│   └── TsukubaiTool.js          # Tsukubai (stone basin) placement
 ├── graphics/
 │   ├── GardenMask.js            # Elliptical garden boundary with noise edges
 │   ├── SandCanvas.js            # Pixel-level sand rendering and manipulation
 │   ├── BorderRenderer.js        # Stone border with moss decoration
+│   ├── StreamRenderer.js        # Animated stream path rendering
 │   └── sprites/
 │       ├── RockSprite.js        # Procedural rock texture generation
 │       ├── ShrubSprite.js       # Procedural shrub texture generation
-│       └── TeahouseSprite.js    # Procedural teahouse texture generation
+│       ├── TeahouseSprite.js    # Procedural teahouse texture generation
+│       ├── ShishiOdoshiSprite.js # Procedural shishi-odoshi texture
+│       └── TsukubaiSprite.js    # Procedural tsukubai (stone basin) texture
 └── ui/
     ├── Toolbar.js               # Bottom toolbar with tool buttons
     └── SoundDialog.js           # Sound settings modal overlay
