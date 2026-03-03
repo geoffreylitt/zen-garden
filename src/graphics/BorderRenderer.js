@@ -44,4 +44,5 @@ export function drawBorder(scene) {
       gfx.fillCircle(p.x + ox, p.y + oy, 1 + Math.random() * 1.5);
     }
   }
+  return gfx;
 }
