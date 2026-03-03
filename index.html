@@ -123,6 +123,157 @@
     .sound-slider::-moz-range-thumb:hover {
       background: #e8dcbc;
     }
+
+    /* --- Tuning Panel --- */
+    #tune-btn-open {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background: #4a3728;
+      color: #e8dcbc;
+      border: 1px solid #6b5340;
+      border-radius: 5px;
+      padding: 7px 14px;
+      cursor: pointer;
+      font-family: monospace;
+      font-size: 13px;
+      z-index: 1000;
+      letter-spacing: 0.3px;
+      transition: background 0.15s;
+    }
+    #tune-btn-open:hover { background: #5c4433; }
+
+    #tune-panel {
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: 340px;
+      height: 100vh;
+      background: #2a2018;
+      border-left: 2px solid #4a3728;
+      overflow-y: auto;
+      display: none;
+      z-index: 1001;
+      font-family: monospace;
+      color: #e8dcbc;
+      font-size: 12px;
+      padding: 14px 16px;
+      box-sizing: border-box;
+    }
+    #tune-panel.open { display: block; }
+
+    .tune-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #4a3728;
+      margin-bottom: 14px;
+      font-size: 14px;
+      font-weight: bold;
+      letter-spacing: 0.5px;
+    }
+
+    .tune-group {
+      margin-bottom: 16px;
+    }
+
+    .tune-group-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #a89878;
+      font-weight: bold;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      margin-bottom: 8px;
+      padding-bottom: 4px;
+      border-bottom: 1px solid #3a2e20;
+    }
+
+    .tune-swatch {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+      border: 1px solid #6b5340;
+      vertical-align: middle;
+    }
+
+    .tune-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 5px;
+      gap: 8px;
+    }
+
+    .tune-label {
+      flex: 0 0 115px;
+      font-size: 11px;
+      color: #c8b898;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .tune-slider {
+      flex: 1;
+      -webkit-appearance: none;
+      appearance: none;
+      height: 3px;
+      background: #4a3728;
+      border-radius: 2px;
+      outline: none;
+      cursor: pointer;
+    }
+    .tune-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 12px;
+      height: 12px;
+      background: #c8b898;
+      border-radius: 50%;
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+    .tune-slider::-webkit-slider-thumb:hover { background: #e8dcbc; }
+    .tune-slider::-moz-range-thumb {
+      width: 12px;
+      height: 12px;
+      background: #c8b898;
+      border-radius: 50%;
+      cursor: pointer;
+      border: none;
+    }
+    .tune-slider::-moz-range-thumb:hover { background: #e8dcbc; }
+
+    .tune-value {
+      flex: 0 0 42px;
+      text-align: right;
+      font-size: 10px;
+      color: #8a7a60;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .tune-btn {
+      background: #4a3728;
+      color: #e8dcbc;
+      border: 1px solid #6b5340;
+      border-radius: 4px;
+      padding: 4px 10px;
+      cursor: pointer;
+      font-family: monospace;
+      font-size: 11px;
+      white-space: nowrap;
+      transition: background 0.15s;
+    }
+    .tune-btn:hover { background: #5c4433; }
+
+    .tune-close {
+      font-size: 16px;
+      padding: 2px 8px;
+      line-height: 1;
+    }
   </style>
 </head>
 <body>

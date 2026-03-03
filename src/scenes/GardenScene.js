@@ -6,17 +6,64 @@ const H = 360 * SAND_SCALE;
 const TOOLBAR_H = 30 * SAND_SCALE;
 const SAND_H = H - TOOLBAR_H;
 
-// Colors
-const SAND_BASE = [0xd2, 0xc4, 0xa0];
-const GROOVE_COLOR = [0xb0, 0xa0, 0x78];
-const RIDGE_COLOR = [0xe8, 0xdc, 0xbc];
-
-// Rake config
-const TINE_COUNT = 5;
-const TINE_SPACING = 3 * SAND_SCALE;
-
 // Pentatonic chime frequencies (C5-D6 range)
 const CHIME_NOTES = [523.25, 587.33, 659.25, 783.99, 880.0, 1046.50, 1174.66];
+
+const DEFAULT_SAND_PARAMS = {
+  sandBaseR: 0xd2,
+  sandBaseG: 0xc4,
+  sandBaseB: 0xa0,
+  duneFreq: 0.020,
+  duneAmp: 4,
+  clusterFreq: 0.08,
+  clusterAmp: 3,
+  fineNoise: 10,
+  colorVariation: 0,
+  grooveR: 0xb0,
+  grooveG: 0xa0,
+  grooveB: 0x78,
+  ridgeR: 0xe8,
+  ridgeG: 0xdc,
+  ridgeB: 0xbc,
+  tineCount: 5,
+  tineSpacing: 9,
+  grooveWidth: 0,
+  ridgeWidth: 1,
+  grooveDepth: 0,
+  ridgeFade: 0,
+  smoothing: 1.0,
+};
+
+const PARAM_DEFS = [
+  { group: 'Sand Color',    key: 'sandBaseR',      label: 'Base Red',          min: 0,     max: 255,  step: 1 },
+  { group: 'Sand Color',    key: 'sandBaseG',      label: 'Base Green',        min: 0,     max: 255,  step: 1 },
+  { group: 'Sand Color',    key: 'sandBaseB',      label: 'Base Blue',         min: 0,     max: 255,  step: 1 },
+  { group: 'Sand Texture',  key: 'duneFreq',       label: 'Dune Frequency',    min: 0.001, max: 0.15, step: 0.001 },
+  { group: 'Sand Texture',  key: 'duneAmp',        label: 'Dune Amplitude',    min: 0,     max: 25,   step: 0.5 },
+  { group: 'Sand Texture',  key: 'clusterFreq',    label: 'Cluster Frequency', min: 0.01,  max: 0.4,  step: 0.005 },
+  { group: 'Sand Texture',  key: 'clusterAmp',     label: 'Cluster Amplitude', min: 0,     max: 25,   step: 0.5 },
+  { group: 'Sand Texture',  key: 'fineNoise',      label: 'Fine Noise',        min: 0,     max: 50,   step: 1 },
+  { group: 'Sand Texture',  key: 'colorVariation', label: 'Color Variation',   min: 0,     max: 20,   step: 0.5 },
+  { group: 'Groove Color',  key: 'grooveR',        label: 'Groove Red',        min: 0,     max: 255,  step: 1 },
+  { group: 'Groove Color',  key: 'grooveG',        label: 'Groove Green',      min: 0,     max: 255,  step: 1 },
+  { group: 'Groove Color',  key: 'grooveB',        label: 'Groove Blue',       min: 0,     max: 255,  step: 1 },
+  { group: 'Ridge Color',   key: 'ridgeR',         label: 'Ridge Red',         min: 0,     max: 255,  step: 1 },
+  { group: 'Ridge Color',   key: 'ridgeG',         label: 'Ridge Green',       min: 0,     max: 255,  step: 1 },
+  { group: 'Ridge Color',   key: 'ridgeB',         label: 'Ridge Blue',        min: 0,     max: 255,  step: 1 },
+  { group: 'Rake Geometry', key: 'tineCount',      label: 'Tine Count',        min: 1,     max: 20,   step: 1 },
+  { group: 'Rake Geometry', key: 'tineSpacing',    label: 'Tine Spacing',      min: 1,     max: 40,   step: 1 },
+  { group: 'Rake Geometry', key: 'grooveWidth',    label: 'Groove Width',      min: 0,     max: 10,   step: 1 },
+  { group: 'Rake Geometry', key: 'ridgeWidth',     label: 'Ridge Width',       min: 0,     max: 10,   step: 1 },
+  { group: 'Rake Effects',  key: 'grooveDepth',    label: 'Groove Depth',      min: 0,     max: 40,   step: 1 },
+  { group: 'Rake Effects',  key: 'ridgeFade',      label: 'Ridge Fade',        min: 0,     max: 1,    step: 0.05 },
+  { group: 'Rake Effects',  key: 'smoothing',      label: 'Smoothing',         min: 0.5,   max: 5,    step: 0.1 },
+];
+
+const SAND_TEXTURE_KEYS = new Set([
+  'sandBaseR', 'sandBaseG', 'sandBaseB',
+  'duneFreq', 'duneAmp', 'clusterFreq', 'clusterAmp',
+  'fineNoise', 'colorVariation',
+]);
 
 export class GardenScene extends Phaser.Scene {
   constructor() {
@@ -33,6 +80,12 @@ export class GardenScene extends Phaser.Scene {
     this.rakeGain = null;
     this.chimeTimer = null;
     this.soundDialogEl = null;
+    this.tunePanel = null;
+    this.tuneCopyBtn = null;
+    this.tuneSwatches = {};
+    this.sandRefreshTimer = null;
+    this.sandParams = { ...DEFAULT_SAND_PARAMS };
+
     this.soundLayers = {
       wind:    { enabled: true, volume: 0.6, gain: null, maxGain: 0.06 },
       chimes:  { enabled: true, volume: 0.5, gain: null, maxGain: 0.12 },
@@ -46,6 +99,7 @@ export class GardenScene extends Phaser.Scene {
     this.drawBorder();
     this.createToolbar();
     this.setupInput();
+    this.createTuningPanel();
   }
 
   // --- Garden Boundary ---
@@ -87,19 +141,24 @@ export class GardenScene extends Phaser.Scene {
   }
 
   fillSand() {
+    const p = this.sandParams;
     for (let y = 0; y < SAND_H; y++) {
       for (let x = 0; x < W; x++) {
         const i = (y * W + x) * 4;
         if (this.gardenMask[y * W + x]) {
-          const dune = Math.sin(x * 0.02 + y * 0.015) * 4
-                     + Math.sin(x * 0.013 - y * 0.009 + 2.5) * 3;
-          const cluster = Math.sin(x * 0.08 + 0.7) * Math.cos(y * 0.1 + 1.2) * 3
-                        + Math.sin(x * 0.12 - y * 0.06) * 2;
-          const fine = (Math.random() - 0.5) * 10;
+          const dune =
+            Math.sin(x * p.duneFreq + y * p.duneFreq * 0.75) * p.duneAmp +
+            Math.sin(x * p.duneFreq * 0.65 - y * p.duneFreq * 0.45 + 2.5) * p.duneAmp * 0.75;
+          const cluster =
+            Math.sin(x * p.clusterFreq + 0.7) * Math.cos(y * p.clusterFreq * 1.25 + 1.2) * p.clusterAmp +
+            Math.sin(x * p.clusterFreq * 1.5 - y * p.clusterFreq * 0.75) * p.clusterAmp * 0.67;
+          const fine = (Math.random() - 0.5) * p.fineNoise;
+          const rVar = p.colorVariation > 0 ? (Math.random() - 0.5) * p.colorVariation : 0;
+          const gVar = p.colorVariation > 0 ? (Math.random() - 0.5) * p.colorVariation : 0;
           const noise = dune + cluster + fine;
-          this.sandPixels[i]     = Math.max(0, Math.min(255, SAND_BASE[0] + noise));
-          this.sandPixels[i + 1] = Math.max(0, Math.min(255, SAND_BASE[1] + noise));
-          this.sandPixels[i + 2] = Math.max(0, Math.min(255, SAND_BASE[2] + noise));
+          this.sandPixels[i]     = Math.max(0, Math.min(255, p.sandBaseR + noise + rVar));
+          this.sandPixels[i + 1] = Math.max(0, Math.min(255, p.sandBaseG + noise + gVar));
+          this.sandPixels[i + 2] = Math.max(0, Math.min(255, p.sandBaseB + noise));
           this.sandPixels[i + 3] = 255;
         } else {
           this.sandPixels[i]     = 0x3a;
@@ -413,37 +472,74 @@ export class GardenScene extends Phaser.Scene {
 
   // --- Raking ---
   rakeStroke(from, to) {
+    const p = this.sandParams;
     const dx = to.x - from.x;
     const dy = to.y - from.y;
     const dist = Math.sqrt(dx * dx + dy * dy);
     if (dist < 1) return;
 
-    const steps = Math.ceil(dist);
+    const steps = Math.max(1, Math.ceil(dist * p.smoothing));
     const nx = dx / dist;
     const ny = dy / dist;
     const px = -ny;
     const py = nx;
 
-    const halfWidth = ((TINE_COUNT - 1) * TINE_SPACING) / 2;
+    const halfWidth = ((p.tineCount - 1) * p.tineSpacing) / 2;
+    const grooveColor = [p.grooveR, p.grooveG, p.grooveB];
+    const ridgeColor = [p.ridgeR, p.ridgeG, p.ridgeB];
+    const sandBase = [p.sandBaseR, p.sandBaseG, p.sandBaseB];
 
     for (let s = 0; s <= steps; s++) {
-      const cx = from.x + nx * s;
-      const cy = from.y + ny * s;
+      const frac = steps > 0 ? s / steps : 0;
+      const cx = from.x + dx * frac;
+      const cy = from.y + dy * frac;
 
-      for (let t = 0; t < TINE_COUNT; t++) {
-        const offset = -halfWidth + t * TINE_SPACING;
+      for (let t = 0; t < p.tineCount; t++) {
+        const offset = -halfWidth + t * p.tineSpacing;
         const tx = Math.floor(cx + px * offset);
         const ty = Math.floor(cy + py * offset);
 
         if (!this.isInGarden(tx, ty)) continue;
 
-        this.setSandPixel(tx, ty, GROOVE_COLOR);
-        const rx1 = Math.floor(tx + px);
-        const ry1 = Math.floor(ty + py);
-        const rx2 = Math.floor(tx - px);
-        const ry2 = Math.floor(ty - py);
-        if (this.isInGarden(rx1, ry1)) this.setSandPixel(rx1, ry1, RIDGE_COLOR);
-        if (this.isInGarden(rx2, ry2)) this.setSandPixel(rx2, ry2, RIDGE_COLOR);
+        for (let g = -p.grooveWidth; g <= p.grooveWidth; g++) {
+          const gx = Math.floor(tx + px * g);
+          const gy = Math.floor(ty + py * g);
+          if (!this.isInGarden(gx, gy)) continue;
+
+          if (p.grooveDepth > 0 && p.grooveWidth > 0) {
+            const depth = 1 - Math.abs(g) / (p.grooveWidth + 1);
+            const darken = depth * p.grooveDepth;
+            this.setSandPixel(gx, gy, [
+              grooveColor[0] - darken,
+              grooveColor[1] - darken,
+              grooveColor[2] - darken,
+            ]);
+          } else {
+            this.setSandPixel(gx, gy, grooveColor);
+          }
+        }
+
+        for (let r = 1; r <= p.ridgeWidth; r++) {
+          let rc;
+          if (p.ridgeFade > 0 && p.ridgeWidth > 1) {
+            const fade = 1 - ((r - 1) / p.ridgeWidth) * p.ridgeFade;
+            rc = [
+              sandBase[0] + (ridgeColor[0] - sandBase[0]) * fade,
+              sandBase[1] + (ridgeColor[1] - sandBase[1]) * fade,
+              sandBase[2] + (ridgeColor[2] - sandBase[2]) * fade,
+            ];
+          } else {
+            rc = ridgeColor;
+          }
+
+          const rx1 = Math.floor(tx + px * (p.grooveWidth + r));
+          const ry1 = Math.floor(ty + py * (p.grooveWidth + r));
+          const rx2 = Math.floor(tx - px * (p.grooveWidth + r));
+          const ry2 = Math.floor(ty - py * (p.grooveWidth + r));
+
+          if (this.isInGarden(rx1, ry1)) this.setSandPixel(rx1, ry1, rc);
+          if (this.isInGarden(rx2, ry2)) this.setSandPixel(rx2, ry2, rc);
+        }
       }
     }
     this.sandDirty = true;
@@ -455,6 +551,185 @@ export class GardenScene extends Phaser.Scene {
     this.sandPixels[i + 1] = color[1];
     this.sandPixels[i + 2] = color[2];
     this.sandPixels[i + 3] = 255;
+  }
+
+  // --- Tuning Panel ---
+  createTuningPanel() {
+    const openBtn = document.createElement('button');
+    openBtn.id = 'tune-btn-open';
+    openBtn.textContent = '\u2699 Tune Sand';
+    document.body.appendChild(openBtn);
+
+    const panel = document.createElement('div');
+    panel.id = 'tune-panel';
+
+    const header = document.createElement('div');
+    header.className = 'tune-header';
+
+    const titleEl = document.createElement('span');
+    titleEl.textContent = 'Sand Tuning';
+    header.appendChild(titleEl);
+
+    const headerBtns = document.createElement('div');
+    headerBtns.style.display = 'flex';
+    headerBtns.style.gap = '6px';
+
+    const copyBtn = document.createElement('button');
+    copyBtn.className = 'tune-btn';
+    copyBtn.textContent = 'Copy JSON';
+    copyBtn.addEventListener('click', () => this.copyParamsJSON(copyBtn));
+    this.tuneCopyBtn = copyBtn;
+    headerBtns.appendChild(copyBtn);
+
+    const resetBtn = document.createElement('button');
+    resetBtn.className = 'tune-btn';
+    resetBtn.textContent = 'Reset';
+    resetBtn.addEventListener('click', () => this.resetParams());
+    headerBtns.appendChild(resetBtn);
+
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'tune-btn tune-close';
+    closeBtn.textContent = '\u00d7';
+    closeBtn.addEventListener('click', () => panel.classList.remove('open'));
+    headerBtns.appendChild(closeBtn);
+
+    header.appendChild(headerBtns);
+    panel.appendChild(header);
+
+    const groups = {};
+    PARAM_DEFS.forEach(def => {
+      if (!groups[def.group]) groups[def.group] = [];
+      groups[def.group].push(def);
+    });
+
+    this.tuneSliders = {};
+
+    Object.entries(groups).forEach(([groupName, params]) => {
+      const groupDiv = document.createElement('div');
+      groupDiv.className = 'tune-group';
+
+      const titleRow = document.createElement('div');
+      titleRow.className = 'tune-group-title';
+      const titleText = document.createElement('span');
+      titleText.textContent = groupName;
+      titleRow.appendChild(titleText);
+
+      if (groupName.includes('Color')) {
+        const swatch = document.createElement('span');
+        swatch.className = 'tune-swatch';
+        titleRow.appendChild(swatch);
+        this.tuneSwatches[groupName] = swatch;
+      }
+
+      groupDiv.appendChild(titleRow);
+
+      params.forEach(def => {
+        const row = document.createElement('div');
+        row.className = 'tune-row';
+
+        const label = document.createElement('div');
+        label.className = 'tune-label';
+        label.textContent = def.label;
+
+        const slider = document.createElement('input');
+        slider.type = 'range';
+        slider.className = 'tune-slider';
+        slider.min = String(def.min);
+        slider.max = String(def.max);
+        slider.step = String(def.step);
+        slider.value = String(this.sandParams[def.key]);
+
+        const valueDisplay = document.createElement('div');
+        valueDisplay.className = 'tune-value';
+        valueDisplay.textContent = this.formatParamValue(this.sandParams[def.key], def.step);
+
+        this.tuneSliders[def.key] = { slider, valueDisplay };
+
+        slider.addEventListener('input', () => {
+          const val = parseFloat(slider.value);
+          this.sandParams[def.key] = val;
+          valueDisplay.textContent = this.formatParamValue(val, def.step);
+          this.onParamChange(def.key);
+        });
+
+        row.appendChild(label);
+        row.appendChild(slider);
+        row.appendChild(valueDisplay);
+        groupDiv.appendChild(row);
+      });
+
+      panel.appendChild(groupDiv);
+    });
+
+    document.body.appendChild(panel);
+    this.tunePanel = panel;
+
+    openBtn.addEventListener('click', () => {
+      panel.classList.toggle('open');
+    });
+
+    this.updateSwatches();
+  }
+
+  formatParamValue(val, step) {
+    if (step >= 1) return String(Math.round(val));
+    const decimals = Math.max(1, Math.ceil(-Math.log10(step)));
+    return val.toFixed(decimals);
+  }
+
+  onParamChange(key) {
+    if (SAND_TEXTURE_KEYS.has(key)) {
+      if (this.sandRefreshTimer) clearTimeout(this.sandRefreshTimer);
+      this.sandRefreshTimer = setTimeout(() => {
+        this.fillSand();
+        this.syncSandToCanvas();
+      }, 120);
+    }
+    this.updateSwatches();
+  }
+
+  updateSwatches() {
+    const p = this.sandParams;
+    const sets = {
+      'Sand Color':   [p.sandBaseR, p.sandBaseG, p.sandBaseB],
+      'Groove Color': [p.grooveR, p.grooveG, p.grooveB],
+      'Ridge Color':  [p.ridgeR, p.ridgeG, p.ridgeB],
+    };
+    for (const [group, [r, g, b]] of Object.entries(sets)) {
+      const swatch = this.tuneSwatches[group];
+      if (swatch) {
+        swatch.style.backgroundColor = `rgb(${Math.round(r)},${Math.round(g)},${Math.round(b)})`;
+      }
+    }
+  }
+
+  copyParamsJSON(btn) {
+    const json = JSON.stringify(this.sandParams, null, 2);
+    navigator.clipboard.writeText(json).then(() => {
+      btn.textContent = 'Copied!';
+      setTimeout(() => { btn.textContent = 'Copy JSON'; }, 1500);
+    }).catch(() => {
+      const ta = document.createElement('textarea');
+      ta.value = json;
+      ta.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:320px;height:300px;z-index:9999;font-family:monospace;font-size:11px;background:#2a2018;color:#e8dcbc;border:2px solid #6b5340;padding:10px;border-radius:6px;';
+      document.body.appendChild(ta);
+      ta.select();
+      ta.addEventListener('blur', () => ta.remove());
+    });
+  }
+
+  resetParams() {
+    Object.assign(this.sandParams, DEFAULT_SAND_PARAMS);
+    PARAM_DEFS.forEach(def => {
+      const entry = this.tuneSliders[def.key];
+      if (entry) {
+        entry.slider.value = String(DEFAULT_SAND_PARAMS[def.key]);
+        entry.valueDisplay.textContent = this.formatParamValue(DEFAULT_SAND_PARAMS[def.key], def.step);
+      }
+    });
+    this.updateSwatches();
+    this.fillSand();
+    this.syncSandToCanvas();
   }
 
   // --- Items (Rocks & Shrubs) ---
