@@ -2,6 +2,7 @@ import { WindLayer } from './WindLayer.js';
 import { ChimesLayer } from './ChimesLayer.js';
 import { CicadasLayer } from './CicadasLayer.js';
 import { RakeSound } from './RakeSound.js';
+import { BroomSound } from './BroomSound.js';
 import { PlaceSound } from './PlaceSound.js';
 
 export class AudioManager {
@@ -14,6 +15,7 @@ export class AudioManager {
       cicadas: new CicadasLayer(),
     };
     this.rakeSound = new RakeSound();
+    this.broomSound = new BroomSound();
     this.placeSound = new PlaceSound();
   }
 
@@ -27,6 +29,7 @@ export class AudioManager {
         layer.setup(this.ctx);
       }
       this.rakeSound.setup(this.ctx);
+      this.broomSound.setup(this.ctx);
     } catch (e) {
       // Web Audio not available
     }
@@ -47,6 +50,14 @@ export class AudioManager {
 
   stopRake() {
     if (this.rakeSound && this.ctx) this.rakeSound.stop(this.ctx);
+  }
+
+  startBroom() {
+    if (this.broomSound && this.ctx) this.broomSound.start(this.ctx);
+  }
+
+  stopBroom() {
+    if (this.broomSound && this.ctx) this.broomSound.stop(this.ctx);
   }
 
   playPlace() {
