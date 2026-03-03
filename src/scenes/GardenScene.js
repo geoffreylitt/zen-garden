@@ -8,6 +8,7 @@ import { RakeTool } from '../tools/RakeTool.js';
 import { RockTool } from '../tools/RockTool.js';
 import { ShrubTool } from '../tools/ShrubTool.js';
 import { TeahouseTool } from '../tools/TeahouseTool.js';
+import { FootstepSystem } from '../graphics/FootstepSystem.js';
 import { Toolbar } from '../ui/Toolbar.js';
 import { SoundDialog } from '../ui/SoundDialog.js';
 
@@ -34,6 +35,9 @@ export class GardenScene extends Phaser.Scene {
       SHRUB: new ShrubTool(this, this.gardenMask, this.audio),
       TEAHOUSE: new TeahouseTool(this, this.gardenMask, this.audio),
     };
+
+    // Footsteps
+    this.footsteps = new FootstepSystem(this.sandCanvas, this.gardenMask);
 
     // UI
     this.soundDialog = new SoundDialog(this.audio, () => {
@@ -71,6 +75,7 @@ export class GardenScene extends Phaser.Scene {
     });
 
     this.input.on('pointermove', (pointer) => {
+      this.footsteps.onPointerMove(pointer);
       const tool = this.tools[this.activeTool];
       if (tool && tool.onMove) tool.onMove(pointer);
     });
