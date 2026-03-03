@@ -14,8 +14,6 @@ const RIDGE_COLOR = [0xe8, 0xdc, 0xbc];
 // Rake config
 const TINE_COUNT = 5;
 const TINE_SPACING = 3 * SAND_SCALE;
-const GROOVE_HW = Math.max(1, Math.round(SAND_SCALE * 0.7));
-const RIDGE_W = Math.max(1, Math.round(SAND_SCALE * 0.8));
 
 // Pentatonic chime frequencies (C5-D6 range)
 const CHIME_NOTES = [523.25, 587.33, 659.25, 783.99, 880.0, 1046.50, 1174.66];
@@ -35,8 +33,6 @@ export class GardenScene extends Phaser.Scene {
     this.rakeGain = null;
     this.chimeTimer = null;
     this.soundDialogEl = null;
-    this.dirtyRect = { x1: Infinity, y1: Infinity, x2: -Infinity, y2: -Infinity };
-
     this.soundLayers = {
       wind:    { enabled: true, volume: 0.6, gain: null, maxGain: 0.06 },
       chimes:  { enabled: true, volume: 0.5, gain: null, maxGain: 0.12 },
@@ -86,7 +82,7 @@ export class GardenScene extends Phaser.Scene {
     this.sandTexture = this.textures.createCanvas('sand', W, SAND_H);
     this.sandPixels = new Uint8ClampedArray(W * SAND_H * 4);
     this.fillSand();
-    this.syncSandToCanvas(true);
+    this.syncSandToCanvas();
     this.add.image(W / 2, SAND_H / 2, 'sand');
   }
 
@@ -100,15 +96,10 @@ export class GardenScene extends Phaser.Scene {
           const cluster = Math.sin(x * 0.08 + 0.7) * Math.cos(y * 0.1 + 1.2) * 3
                         + Math.sin(x * 0.12 - y * 0.06) * 2;
           const fine = (Math.random() - 0.5) * 10;
-          const grain = Math.random() < 0.012
-            ? (Math.random() > 0.5 ? 1 : -1) * (15 + Math.random() * 12)
-            : 0;
-          const warmth = (Math.random() - 0.5) * 4;
-          const tint = (Math.random() - 0.5) * 2;
-          const n = dune + cluster + fine + grain;
-          this.sandPixels[i]     = Math.max(0, Math.min(255, SAND_BASE[0] + n + warmth));
-          this.sandPixels[i + 1] = Math.max(0, Math.min(255, SAND_BASE[1] + n + tint));
-          this.sandPixels[i + 2] = Math.max(0, Math.min(255, SAND_BASE[2] + n));
+          const noise = dune + cluster + fine;
+          this.sandPixels[i]     = Math.max(0, Math.min(255, SAND_BASE[0] + noise));
+          this.sandPixels[i + 1] = Math.max(0, Math.min(255, SAND_BASE[1] + noise));
+          this.sandPixels[i + 2] = Math.max(0, Math.min(255, SAND_BASE[2] + noise));
           this.sandPixels[i + 3] = 255;
         } else {
           this.sandPixels[i]     = 0x3a;
@@ -121,55 +112,13 @@ export class GardenScene extends Phaser.Scene {
     this.sandDirty = true;
   }
 
-  // --- LOD: dirty-rect partial sync vs full sync ---
-  resetDirtyRect() {
-    this.dirtyRect.x1 = Infinity;
-    this.dirtyRect.y1 = Infinity;
-    this.dirtyRect.x2 = -Infinity;
-    this.dirtyRect.y2 = -Infinity;
-  }
-
-  expandDirty(x, y) {
-    if (x < this.dirtyRect.x1) this.dirtyRect.x1 = x;
-    if (y < this.dirtyRect.y1) this.dirtyRect.y1 = y;
-    if (x + 1 > this.dirtyRect.x2) this.dirtyRect.x2 = x + 1;
-    if (y + 1 > this.dirtyRect.y2) this.dirtyRect.y2 = y + 1;
-  }
-
-  hasDirtyRect() {
-    return this.dirtyRect.x2 > this.dirtyRect.x1 && this.dirtyRect.y2 > this.dirtyRect.y1;
-  }
-
-  syncSandToCanvas(forceFullSync = false) {
+  syncSandToCanvas() {
     const ctx = this.sandTexture.context;
-
-    if (!forceFullSync && this.hasDirtyRect()) {
-      const x1 = Math.max(0, this.dirtyRect.x1);
-      const y1 = Math.max(0, this.dirtyRect.y1);
-      const x2 = Math.min(W, this.dirtyRect.x2);
-      const y2 = Math.min(SAND_H, this.dirtyRect.y2);
-      const dw = x2 - x1;
-      const dh = y2 - y1;
-
-      if (dw > 0 && dh > 0) {
-        const imageData = ctx.createImageData(dw, dh);
-        const dst = imageData.data;
-        for (let row = 0; row < dh; row++) {
-          const srcStart = ((y1 + row) * W + x1) * 4;
-          const dstStart = row * dw * 4;
-          dst.set(this.sandPixels.subarray(srcStart, srcStart + dw * 4), dstStart);
-        }
-        ctx.putImageData(imageData, x1, y1);
-      }
-    } else {
-      const imageData = ctx.createImageData(W, SAND_H);
-      imageData.data.set(this.sandPixels);
-      ctx.putImageData(imageData, 0, 0);
-    }
-
+    const imageData = ctx.createImageData(W, SAND_H);
+    imageData.data.set(this.sandPixels);
+    ctx.putImageData(imageData, 0, 0);
     this.sandTexture.refresh();
     this.sandDirty = false;
-    this.resetDirtyRect();
   }
 
   // --- Border ---
@@ -293,7 +242,7 @@ export class GardenScene extends Phaser.Scene {
 
   clearSand() {
     this.fillSand();
-    this.syncSandToCanvas(true);
+    this.syncSandToCanvas();
   }
 
   // --- Sound Settings Dialog ---
@@ -477,16 +426,6 @@ export class GardenScene extends Phaser.Scene {
 
     const halfWidth = ((TINE_COUNT - 1) * TINE_SPACING) / 2;
 
-    const margin = halfWidth + GROOVE_HW + RIDGE_W + 2;
-    this.expandDirty(
-      Math.floor(Math.min(from.x, to.x) - margin),
-      Math.floor(Math.min(from.y, to.y) - margin)
-    );
-    this.expandDirty(
-      Math.ceil(Math.max(from.x, to.x) + margin),
-      Math.ceil(Math.max(from.y, to.y) + margin)
-    );
-
     for (let s = 0; s <= steps; s++) {
       const cx = from.x + nx * s;
       const cy = from.y + ny * s;
@@ -496,35 +435,15 @@ export class GardenScene extends Phaser.Scene {
         const tx = Math.floor(cx + px * offset);
         const ty = Math.floor(cy + py * offset);
 
-        for (let g = -GROOVE_HW; g <= GROOVE_HW; g++) {
-          const gx = Math.floor(tx + px * g);
-          const gy = Math.floor(ty + py * g);
-          if (!this.isInGarden(gx, gy)) continue;
-          const depth = 1 - Math.abs(g) / (GROOVE_HW + 1);
-          const darken = depth * 12;
-          this.setSandPixel(gx, gy, [
-            GROOVE_COLOR[0] - darken,
-            GROOVE_COLOR[1] - darken,
-            GROOVE_COLOR[2] - darken,
-          ]);
-        }
+        if (!this.isInGarden(tx, ty)) continue;
 
-        for (let r = 1; r <= RIDGE_W; r++) {
-          const fade = 1 - (r - 1) / RIDGE_W;
-          const rc = [
-            SAND_BASE[0] + (RIDGE_COLOR[0] - SAND_BASE[0]) * fade,
-            SAND_BASE[1] + (RIDGE_COLOR[1] - SAND_BASE[1]) * fade,
-            SAND_BASE[2] + (RIDGE_COLOR[2] - SAND_BASE[2]) * fade,
-          ];
-
-          const rx1 = Math.floor(tx + px * (GROOVE_HW + r));
-          const ry1 = Math.floor(ty + py * (GROOVE_HW + r));
-          const rx2 = Math.floor(tx - px * (GROOVE_HW + r));
-          const ry2 = Math.floor(ty - py * (GROOVE_HW + r));
-
-          if (this.isInGarden(rx1, ry1)) this.setSandPixel(rx1, ry1, rc);
-          if (this.isInGarden(rx2, ry2)) this.setSandPixel(rx2, ry2, rc);
-        }
+        this.setSandPixel(tx, ty, GROOVE_COLOR);
+        const rx1 = Math.floor(tx + px);
+        const ry1 = Math.floor(ty + py);
+        const rx2 = Math.floor(tx - px);
+        const ry2 = Math.floor(ty - py);
+        if (this.isInGarden(rx1, ry1)) this.setSandPixel(rx1, ry1, RIDGE_COLOR);
+        if (this.isInGarden(rx2, ry2)) this.setSandPixel(rx2, ry2, RIDGE_COLOR);
       }
     }
     this.sandDirty = true;
