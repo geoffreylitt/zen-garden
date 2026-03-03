@@ -1,5 +1,6 @@
 import { SAND_H } from '../constants.js';
 import { createShrubTexture } from '../graphics/sprites/ShrubSprite.js';
+import { setupObjectInteractions } from './ObjectInteractions.js';
 
 export class ShrubTool {
   constructor(scene, gardenMask, audioManager) {
@@ -16,7 +17,6 @@ export class ShrubTool {
 
     const key = createShrubTexture(this.scene);
     const sprite = this.scene.add.image(pointer.x, pointer.y, key);
-    sprite.setScale(2);
     sprite.setInteractive({ draggable: true, useHandCursor: true });
     this.scene.input.setDraggable(sprite);
     sprite.on('drag', (_p, dragX, dragY) => {
@@ -25,6 +25,7 @@ export class ShrubTool {
         sprite.y = dragY;
       }
     });
+    setupObjectInteractions(this.scene, sprite, createShrubTexture);
 
     this.audio.playPlace();
   }
