@@ -1,5 +1,6 @@
 import { W, SAND_H } from '../constants.js';
 import { createWandererTexture } from '../graphics/sprites/WandererSprite.js';
+import { createThoughtBubbleTexture } from '../graphics/sprites/ThoughtBubbleSprite.js';
 
 const NUM_WANDERERS = 4;
 const SPEED = 8;           // pixels per second
@@ -7,6 +8,11 @@ const TARGET_RADIUS = 6;   // how close before picking new target
 const OBSTACLE_RADIUS = 20; // avoidance detection range
 const STEER_STRENGTH = 40;  // avoidance force strength
 const MARGIN = 30;          // inset from garden edge for target picking
+const BUBBLE_OFFSET_Y = -12; // how far above the wanderer the bubble sits
+const BUBBLE_SHOW_MIN = 3;   // min seconds a bubble stays visible
+const BUBBLE_SHOW_MAX = 6;
+const BUBBLE_HIDE_MIN = 4;   // min seconds between bubble appearances
+const BUBBLE_HIDE_MAX = 10;
 
 export class Wanderers {
   constructor(scene, gardenMask) {
@@ -25,13 +31,18 @@ export class Wanderers {
       sprite.setScale(2);
       sprite.setDepth(5);
 
+      const bubble = this.createBubble(pos.x, pos.y);
+
       const target = this.randomGardenPoint() || pos;
       this.wanderers.push({
         sprite,
+        bubble,
         tx: target.x,
         ty: target.y,
         paused: false,
         pauseTimer: 0,
+        bubbleVisible: false,
+        bubbleTimer: BUBBLE_HIDE_MIN + Math.random() * (BUBBLE_HIDE_MAX - BUBBLE_HIDE_MIN),
       });
     }
   }
@@ -53,6 +64,24 @@ export class Wanderers {
       }
     }
     return null;
+  }
+
+  createBubble(x, y) {
+    const key = createThoughtBubbleTexture(this.scene);
+    const bubble = this.scene.add.image(x, y + BUBBLE_OFFSET_Y, key);
+    bubble.setScale(1);
+    bubble.setDepth(6);
+    bubble.setAlpha(0);
+    return bubble;
+  }
+
+  refreshBubbleTexture(w) {
+    const oldKey = w.bubble.texture.key;
+    const newKey = createThoughtBubbleTexture(this.scene);
+    w.bubble.setTexture(newKey);
+    if (this.scene.textures.exists(oldKey)) {
+      this.scene.textures.remove(oldKey);
+    }
   }
 
   getObstacles() {
@@ -150,6 +179,33 @@ export class Wanderers {
       } else {
         const t = this.randomGardenPoint();
         if (t) { w.tx = t.x; w.ty = t.y; }
+      }
+    }
+
+    // Update thought bubbles
+    for (const w of this.wanderers) {
+      w.bubble.x = w.sprite.x;
+      w.bubble.y = w.sprite.y + BUBBLE_OFFSET_Y;
+
+      w.bubbleTimer -= dt;
+      if (w.bubbleTimer <= 0) {
+        if (w.bubbleVisible) {
+          w.bubbleVisible = false;
+          w.bubbleTimer = BUBBLE_HIDE_MIN + Math.random() * (BUBBLE_HIDE_MAX - BUBBLE_HIDE_MIN);
+        } else {
+          this.refreshBubbleTexture(w);
+          w.bubbleVisible = true;
+          w.bubbleTimer = BUBBLE_SHOW_MIN + Math.random() * (BUBBLE_SHOW_MAX - BUBBLE_SHOW_MIN);
+        }
+      }
+
+      // Smooth fade in/out
+      const targetAlpha = w.bubbleVisible ? 0.85 : 0;
+      const fadeSpeed = 2.0;
+      if (w.bubble.alpha < targetAlpha) {
+        w.bubble.alpha = Math.min(targetAlpha, w.bubble.alpha + fadeSpeed * dt);
+      } else if (w.bubble.alpha > targetAlpha) {
+        w.bubble.alpha = Math.max(targetAlpha, w.bubble.alpha - fadeSpeed * dt);
       }
     }
   }
