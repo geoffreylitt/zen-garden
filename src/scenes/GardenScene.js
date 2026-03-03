@@ -8,6 +8,9 @@ import { RakeTool } from '../tools/RakeTool.js';
 import { RockTool } from '../tools/RockTool.js';
 import { ShrubTool } from '../tools/ShrubTool.js';
 import { TeahouseTool } from '../tools/TeahouseTool.js';
+import { StreamTool } from '../tools/StreamTool.js';
+import { ShishiOdoshiTool } from '../tools/ShishiOdoshiTool.js';
+import { TsukubaiTool } from '../tools/TsukubaiTool.js';
 import { Toolbar } from '../ui/Toolbar.js';
 import { SoundDialog } from '../ui/SoundDialog.js';
 
@@ -33,6 +36,9 @@ export class GardenScene extends Phaser.Scene {
       ROCK: new RockTool(this, this.gardenMask, this.audio),
       SHRUB: new ShrubTool(this, this.gardenMask, this.audio),
       TEAHOUSE: new TeahouseTool(this, this.gardenMask, this.audio),
+      STREAM: new StreamTool(this, this.gardenMask, this.audio),
+      SHISHI: new ShishiOdoshiTool(this, this.gardenMask, this.audio),
+      BASIN: new TsukubaiTool(this, this.gardenMask, this.audio),
     };
 
     // UI
