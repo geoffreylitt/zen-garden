@@ -49,6 +49,10 @@ export class AudioManager {
     if (this.rakeSound && this.ctx) this.rakeSound.stop(this.ctx);
   }
 
+  updateRake(speed, angle) {
+    if (this.rakeSound && this.ctx) this.rakeSound.update(this.ctx, speed, angle);
+  }
+
   playPlace() {
     if (this.placeSound && this.ctx) this.placeSound.play(this.ctx);
   }
