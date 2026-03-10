@@ -30,7 +30,8 @@ src/
 │   ├── RakeTool.js              # Multi-tine rake stroke logic
 │   ├── RockTool.js              # Rock placement
 │   ├── ShrubTool.js             # Shrub placement
-│   └── TeahouseTool.js          # Teahouse placement
+│   ├── TeahouseTool.js          # Teahouse placement
+│   └── MossTool.js              # Moss placement + auto-growth near stones
 ├── graphics/
 │   ├── GardenMask.js            # Elliptical garden boundary with noise edges
 │   ├── SandCanvas.js            # Pixel-level sand rendering and manipulation
@@ -38,7 +39,8 @@ src/
 │   └── sprites/
 │       ├── RockSprite.js        # Procedural rock texture generation
 │       ├── ShrubSprite.js       # Procedural shrub texture generation
-│       └── TeahouseSprite.js    # Procedural teahouse texture generation
+│       ├── TeahouseSprite.js    # Procedural teahouse texture generation
+│       └── MossSprite.js        # Procedural moss texture generation (3 variants)
 └── ui/
     ├── Toolbar.js               # Bottom toolbar with tool buttons
     └── SoundDialog.js           # Sound settings modal overlay

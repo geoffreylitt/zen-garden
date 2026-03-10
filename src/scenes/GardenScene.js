@@ -8,6 +8,7 @@ import { RakeTool } from '../tools/RakeTool.js';
 import { RockTool } from '../tools/RockTool.js';
 import { ShrubTool } from '../tools/ShrubTool.js';
 import { TeahouseTool } from '../tools/TeahouseTool.js';
+import { MossTool } from '../tools/MossTool.js';
 import { Toolbar } from '../ui/Toolbar.js';
 import { SoundDialog } from '../ui/SoundDialog.js';
 
@@ -33,6 +34,7 @@ export class GardenScene extends Phaser.Scene {
       ROCK: new RockTool(this, this.gardenMask, this.audio),
       SHRUB: new ShrubTool(this, this.gardenMask, this.audio),
       TEAHOUSE: new TeahouseTool(this, this.gardenMask, this.audio),
+      MOSS: new MossTool(this, this.gardenMask, this.audio),
     };
 
     // UI
@@ -81,9 +83,12 @@ export class GardenScene extends Phaser.Scene {
     });
   }
 
-  update() {
+  update(time, delta) {
     if (this.sandCanvas.dirty) {
       this.sandCanvas.sync();
+    }
+    if (this.tools.MOSS && this.tools.MOSS.update) {
+      this.tools.MOSS.update(time, delta);
     }
   }
 }
