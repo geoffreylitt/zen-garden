@@ -3,6 +3,7 @@ import { SAND_H } from '../constants.js';
 import { GardenMask } from '../graphics/GardenMask.js';
 import { SandCanvas } from '../graphics/SandCanvas.js';
 import { drawBorder } from '../graphics/BorderRenderer.js';
+import { RainRenderer } from '../graphics/RainRenderer.js';
 import { AudioManager } from '../audio/AudioManager.js';
 import { RakeTool } from '../tools/RakeTool.js';
 import { RockTool } from '../tools/RockTool.js';
@@ -27,6 +28,10 @@ export class GardenScene extends Phaser.Scene {
     // Audio
     this.audio = new AudioManager();
 
+    // Rain
+    this.rainRenderer = new RainRenderer(this, this.gardenMask, this.sandCanvas);
+    this.rainRenderer.create();
+
     // Tools
     this.tools = {
       RAKE: new RakeTool(this.sandCanvas, this.gardenMask, this.audio),
@@ -36,7 +41,7 @@ export class GardenScene extends Phaser.Scene {
     };
 
     // UI
-    this.soundDialog = new SoundDialog(this.audio, () => {
+    this.soundDialog = new SoundDialog(this.audio, this.rainRenderer, () => {
       this.toolbar.updateSoundButton(this.audio.anyLayerEnabled);
     });
 
@@ -51,6 +56,7 @@ export class GardenScene extends Phaser.Scene {
   handleToolSelect(name) {
     if (name === 'CLEAR') {
       this.sandCanvas.clear();
+      this.rainRenderer.puddles = [];
       return;
     }
     if (name === 'SOUND') {
@@ -81,7 +87,8 @@ export class GardenScene extends Phaser.Scene {
     });
   }
 
-  update() {
+  update(_time, delta) {
+    this.rainRenderer.update(delta);
     if (this.sandCanvas.dirty) {
       this.sandCanvas.sync();
     }

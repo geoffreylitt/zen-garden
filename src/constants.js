@@ -15,3 +15,13 @@ export const TINE_SPACING = 3;
 
 // Pentatonic chime frequencies (C5-D6 range)
 export const CHIME_NOTES = [523.25, 587.33, 659.25, 783.99, 880.0, 1046.50, 1174.66];
+
+// Rain weather
+export const RAIN_MAX_PARTICLES = 200;
+export const RAIN_STREAK_LENGTH = 8;
+export const RAIN_FALL_SPEED = 3.5;
+export const RAIN_WIND_DRIFT = 0.8;
+export const RAIN_RIPPLE_MAX = 30;
+export const RAIN_PUDDLE_RATE = 0.0003;
+export const RAIN_SOFTEN_RATE = 0.002;
+export const RAIN_WET_DARKEN = 0.25;
