@@ -6,12 +6,13 @@ export class ChimesLayer {
     this.volume = 0.5;
     this.maxGain = 0.12;
     this.gain = null;
+    this.timeMultiplier = 1;
     this.timer = null;
   }
 
   setup(ctx) {
     this.gain = ctx.createGain();
-    this.gain.gain.value = this.enabled ? this.volume * this.maxGain : 0;
+    this.gain.gain.value = this.enabled ? this.volume * this.maxGain * this.timeMultiplier : 0;
     this.gain.connect(ctx.destination);
     this.scheduleChime(ctx);
   }
@@ -63,7 +64,7 @@ export class ChimesLayer {
 
   updateGain(ctx) {
     if (!this.gain) return;
-    const target = this.enabled ? this.volume * this.maxGain : 0;
+    const target = this.enabled ? this.volume * this.maxGain * this.timeMultiplier : 0;
     const t = ctx.currentTime;
     this.gain.gain.cancelScheduledValues(t);
     this.gain.gain.setValueAtTime(this.gain.gain.value, t);

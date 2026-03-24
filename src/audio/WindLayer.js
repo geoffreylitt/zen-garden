@@ -4,6 +4,7 @@ export class WindLayer {
     this.volume = 0.6;
     this.maxGain = 0.06;
     this.gain = null;
+    this.timeMultiplier = 1;
   }
 
   setup(ctx) {
@@ -23,7 +24,7 @@ export class WindLayer {
     filter.frequency.value = 250;
 
     this.gain = ctx.createGain();
-    this.gain.gain.value = this.enabled ? this.volume * this.maxGain : 0;
+    this.gain.gain.value = this.enabled ? this.volume * this.maxGain * this.timeMultiplier : 0;
 
     source.connect(filter);
     filter.connect(this.gain);
@@ -33,7 +34,7 @@ export class WindLayer {
 
   updateGain(ctx) {
     if (!this.gain) return;
-    const target = this.enabled ? this.volume * this.maxGain : 0;
+    const target = this.enabled ? this.volume * this.maxGain * this.timeMultiplier : 0;
     const t = ctx.currentTime;
     this.gain.gain.cancelScheduledValues(t);
     this.gain.gain.setValueAtTime(this.gain.gain.value, t);
