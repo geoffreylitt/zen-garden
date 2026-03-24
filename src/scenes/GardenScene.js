@@ -10,6 +10,8 @@ import { ShrubTool } from '../tools/ShrubTool.js';
 import { TeahouseTool } from '../tools/TeahouseTool.js';
 import { Toolbar } from '../ui/Toolbar.js';
 import { SoundDialog } from '../ui/SoundDialog.js';
+import { DayNightCycle } from '../atmosphere/DayNightCycle.js';
+import { FogRenderer } from '../atmosphere/FogRenderer.js';
 
 export class GardenScene extends Phaser.Scene {
   constructor() {
@@ -24,6 +26,11 @@ export class GardenScene extends Phaser.Scene {
     this.sandCanvas.create();
     drawBorder(this);
 
+    // Atmosphere
+    this.dayNight = new DayNightCycle();
+    this.fog = new FogRenderer(this);
+    this.fog.create();
+
     // Audio
     this.audio = new AudioManager();
 
@@ -36,7 +43,7 @@ export class GardenScene extends Phaser.Scene {
     };
 
     // UI
-    this.soundDialog = new SoundDialog(this.audio, () => {
+    this.soundDialog = new SoundDialog(this.audio, this.fog, () => {
       this.toolbar.updateSoundButton(this.audio.anyLayerEnabled);
     });
 
@@ -81,9 +88,14 @@ export class GardenScene extends Phaser.Scene {
     });
   }
 
-  update() {
+  update(time, delta) {
     if (this.sandCanvas.dirty) {
       this.sandCanvas.sync();
     }
+
+    this.dayNight.update();
+    this.fog.update(time, delta, this.dayNight);
+
+    this.audio.updateFogMuffle(this.fog.effectiveDensity);
   }
 }

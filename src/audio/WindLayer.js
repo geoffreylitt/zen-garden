@@ -6,7 +6,7 @@ export class WindLayer {
     this.gain = null;
   }
 
-  setup(ctx) {
+  setup(ctx, destination) {
     const bufferSize = ctx.sampleRate * 2;
     const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
     const data = buffer.getChannelData(0);
@@ -27,7 +27,7 @@ export class WindLayer {
 
     source.connect(filter);
     filter.connect(this.gain);
-    this.gain.connect(ctx.destination);
+    this.gain.connect(destination || ctx.destination);
     source.start();
   }
 

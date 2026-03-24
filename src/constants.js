@@ -15,3 +15,20 @@ export const TINE_SPACING = 3;
 
 // Pentatonic chime frequencies (C5-D6 range)
 export const CHIME_NOTES = [523.25, 587.33, 659.25, 783.99, 880.0, 1046.50, 1174.66];
+
+// Day/night cycle
+export const DAY_CYCLE_MS = 8 * 60 * 1000; // 8 minutes per full day
+export const DAWN_START = 5;
+export const DAWN_END = 7;
+export const MIDDAY_START = 10;
+export const MIDDAY_END = 16;
+export const DUSK_START = 17;
+export const DUSK_END = 19;
+
+// Fog
+export const FOG_WISP_COUNT = 45;
+export const FOG_REDRAW_INTERVAL = 80; // ms between fog texture redraws
+export const FOG_MUFFLE_MIN_FREQ = 800;
+export const FOG_MUFFLE_MAX_FREQ = 20000;
+export const FOG_POST_RAIN_BOOST = 0.4;
+export const FOG_POST_RAIN_DECAY = 30000; // ms for post-rain fog to fade

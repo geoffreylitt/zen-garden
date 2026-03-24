@@ -31,6 +31,9 @@ src/
 │   ├── RockTool.js              # Rock placement
 │   ├── ShrubTool.js             # Shrub placement
 │   └── TeahouseTool.js          # Teahouse placement
+├── atmosphere/
+│   ├── DayNightCycle.js         # Compressed 24-hour cycle driving fog & light
+│   └── FogRenderer.js           # Drifting translucent fog wisps overlay
 ├── graphics/
 │   ├── GardenMask.js            # Elliptical garden boundary with noise edges
 │   ├── SandCanvas.js            # Pixel-level sand rendering and manipulation
@@ -41,7 +44,7 @@ src/
 │       └── TeahouseSprite.js    # Procedural teahouse texture generation
 └── ui/
     ├── Toolbar.js               # Bottom toolbar with tool buttons
-    └── SoundDialog.js           # Sound settings modal overlay
+    └── SoundDialog.js           # Sound & atmosphere settings modal overlay
 ```
 
 ## Architecture
@@ -52,6 +55,7 @@ The codebase is modularized so that different types of changes can be made in pa
 
 | Directory | Purpose | When to add files |
 |-----------|---------|-------------------|
+| `atmosphere/` | Weather, time-of-day, and environmental effects | Adding fog, rain, day/night, or similar overlays |
 | `audio/` | Sound layers and interaction sounds | Adding a new ambient sound or interaction sound effect |
 | `tools/` | Pointer-based interaction tools | Adding a new garden tool (e.g., a water feature placer) |
 | `graphics/sprites/` | Procedural sprite generators | Adding a new placeable item type |
@@ -67,10 +71,20 @@ The codebase is modularized so that different types of changes can be made in pa
 
 ### Adding a new sound layer
 
-1. Create `src/audio/MyLayer.js` with `setup(ctx)`, `updateGain(ctx)`, and `enabled`/`volume`/`maxGain` properties
-2. Register it in `AudioManager`'s constructor under `this.layers`
-3. Add it to the `layerDefs` array in `src/ui/SoundDialog.js`
+1. Create `src/audio/MyLayer.js` with `setup(ctx, destination)`, `updateGain(ctx)`, and `enabled`/`volume`/`maxGain` properties
+2. Connect the layer's output gain to `destination` (the master bus) rather than `ctx.destination`
+3. Register it in `AudioManager`'s constructor under `this.layers`
+4. Add it to the `layerDefs` array in `src/ui/SoundDialog.js`
+
+### Atmosphere system
+
+The `src/atmosphere/` directory holds environmental effects:
+
+- **DayNightCycle** — a compressed 24-hour clock (8 min per full day). Exposes `.hour`, `.fogTimeFactor`, and `.darkness` that other systems query each frame.
+- **FogRenderer** — draws drifting translucent fog wisps on a canvas texture overlay. Density is `baseDensity × fogTimeFactor + rainBoost`. Call `notifyRainStart()` / `notifyRainStop()` to trigger lingering post-rain mist.
+- **Audio muffling** — `AudioManager` routes all layers through a master lowpass filter whose cutoff drops with fog density.
+- Fog density is user-adjustable from the Sound & Atmosphere dialog (light haze → thick mist).
 
 ### Shared constants
 
-All dimensions (canvas size, toolbar height), colors (sand, groove, ridge), and tuning values (rake tine count, chime frequencies) live in `src/constants.js`.
+All dimensions (canvas size, toolbar height), colors (sand, groove, ridge), tuning values (rake tine count, chime frequencies), and atmosphere parameters (fog wisp count, muffle frequencies, day cycle length) live in `src/constants.js`.
