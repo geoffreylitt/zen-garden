@@ -24,13 +24,16 @@ src/
 │   ├── WindLayer.js             # Filtered white noise wind ambience
 │   ├── ChimesLayer.js           # Random pentatonic chime scheduling
 │   ├── CicadasLayer.js          # Bandpass-filtered noise with LFO modulation
+│   ├── BirdsongLayer.js         # Daytime procedural bird call scheduling
+│   ├── CricketsLayer.js         # Nighttime cricket chirps and frog croaks
 │   ├── RakeSound.js             # Raking interaction sound
 │   └── PlaceSound.js            # Item placement "plink" sound
 ├── tools/
 │   ├── RakeTool.js              # Multi-tine rake stroke logic
 │   ├── RockTool.js              # Rock placement
 │   ├── ShrubTool.js             # Shrub placement
-│   └── TeahouseTool.js          # Teahouse placement
+│   ├── TeahouseTool.js          # Teahouse placement
+│   └── LanternTool.js           # Stone lantern (tōrō) placement
 ├── graphics/
 │   ├── GardenMask.js            # Elliptical garden boundary with noise edges
 │   ├── SandCanvas.js            # Pixel-level sand rendering and manipulation
@@ -38,10 +41,13 @@ src/
 │   └── sprites/
 │       ├── RockSprite.js        # Procedural rock texture generation
 │       ├── ShrubSprite.js       # Procedural shrub texture generation
-│       └── TeahouseSprite.js    # Procedural teahouse texture generation
+│       ├── TeahouseSprite.js    # Procedural teahouse texture generation
+│       └── LanternSprite.js     # Stone lantern + glow texture generation
+├── DayNightCycle.js             # Time-of-day state, color/audio curves, lantern glow
 └── ui/
     ├── Toolbar.js               # Bottom toolbar with tool buttons
-    └── SoundDialog.js           # Sound settings modal overlay
+    ├── SoundDialog.js           # Sound settings modal overlay
+    └── TimeDialog.js            # Day/night time control dialog
 ```
 
 ## Architecture

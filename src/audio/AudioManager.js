@@ -1,6 +1,8 @@
 import { WindLayer } from './WindLayer.js';
 import { ChimesLayer } from './ChimesLayer.js';
 import { CicadasLayer } from './CicadasLayer.js';
+import { BirdsongLayer } from './BirdsongLayer.js';
+import { CricketsLayer } from './CricketsLayer.js';
 import { RakeSound } from './RakeSound.js';
 import { PlaceSound } from './PlaceSound.js';
 
@@ -12,6 +14,8 @@ export class AudioManager {
       wind: new WindLayer(),
       chimes: new ChimesLayer(),
       cicadas: new CicadasLayer(),
+      birdsong: new BirdsongLayer(),
+      crickets: new CricketsLayer(),
     };
     this.rakeSound = new RakeSound();
     this.placeSound = new PlaceSound();
@@ -35,6 +39,16 @@ export class AudioManager {
   updateLayerGain(key) {
     const layer = this.layers[key];
     if (layer && this.ctx) layer.updateGain(this.ctx);
+  }
+
+  updateTimeMultipliers(dayNight) {
+    for (const [key, layer] of Object.entries(this.layers)) {
+      const prev = layer.timeMultiplier;
+      layer.timeMultiplier = dayNight.getAudioMultiplier(key);
+      if (Math.abs(prev - layer.timeMultiplier) > 0.01) {
+        this.updateLayerGain(key);
+      }
+    }
   }
 
   get anyLayerEnabled() {

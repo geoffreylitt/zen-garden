@@ -6,6 +6,7 @@ export class CicadasLayer {
     this.gain = null;
     this.lfoGain = null;
     this.swellGain = null;
+    this.timeMultiplier = 1;
   }
 
   setup(ctx) {
@@ -31,7 +32,7 @@ export class CicadasLayer {
     filter2.Q.value = 4;
 
     this.gain = ctx.createGain();
-    const baseGain = this.enabled ? this.volume * this.maxGain : 0;
+    const baseGain = this.enabled ? this.volume * this.maxGain * this.timeMultiplier : 0;
     this.gain.gain.value = baseGain;
 
     const lfo = ctx.createOscillator();
@@ -64,7 +65,7 @@ export class CicadasLayer {
 
   updateGain(ctx) {
     if (!this.gain) return;
-    const target = this.enabled ? this.volume * this.maxGain : 0;
+    const target = this.enabled ? this.volume * this.maxGain * this.timeMultiplier : 0;
     const t = ctx.currentTime;
 
     this.gain.gain.cancelScheduledValues(t);
