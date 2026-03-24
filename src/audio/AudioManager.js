@@ -1,6 +1,7 @@
 import { WindLayer } from './WindLayer.js';
 import { ChimesLayer } from './ChimesLayer.js';
 import { CicadasLayer } from './CicadasLayer.js';
+import { RainLayer } from './RainLayer.js';
 import { RakeSound } from './RakeSound.js';
 import { PlaceSound } from './PlaceSound.js';
 
@@ -12,6 +13,7 @@ export class AudioManager {
       wind: new WindLayer(),
       chimes: new ChimesLayer(),
       cicadas: new CicadasLayer(),
+      rain: new RainLayer(),
     };
     this.rakeSound = new RakeSound();
     this.placeSound = new PlaceSound();

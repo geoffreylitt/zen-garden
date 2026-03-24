@@ -1,6 +1,7 @@
 export class SoundDialog {
-  constructor(audioManager, onUpdate) {
+  constructor(audioManager, rainRenderer, onUpdate) {
     this.audio = audioManager;
+    this.rainRenderer = rainRenderer;
     this.onUpdate = onUpdate;
     this.el = null;
   }
@@ -76,6 +77,8 @@ export class SoundDialog {
       dialog.appendChild(row);
     });
 
+    this._createWeatherSection(dialog);
+
     overlay.appendChild(dialog);
     overlay.addEventListener('click', (e) => {
       if (e.target === overlay) this.close();
@@ -83,5 +86,83 @@ export class SoundDialog {
 
     document.body.appendChild(overlay);
     this.el = overlay;
+  }
+
+  _createWeatherSection(dialog) {
+    const divider = document.createElement('div');
+    divider.className = 'sound-dialog-section-divider';
+    dialog.appendChild(divider);
+
+    const sectionTitle = document.createElement('div');
+    sectionTitle.className = 'sound-dialog-section-title';
+    sectionTitle.textContent = 'Weather';
+    dialog.appendChild(sectionTitle);
+
+    const rainLayer = this.audio.layers.rain;
+
+    const toggleRow = document.createElement('div');
+    toggleRow.className = 'sound-layer-row';
+
+    const toggle = document.createElement('input');
+    toggle.type = 'checkbox';
+    toggle.checked = rainLayer.enabled;
+    toggle.id = 'weather-rain';
+    toggle.addEventListener('change', () => {
+      rainLayer.enabled = toggle.checked;
+      this.rainRenderer.setEnabled(toggle.checked);
+      this.audio.updateLayerGain('rain');
+      this.onUpdate();
+    });
+
+    const labelEl = document.createElement('label');
+    labelEl.htmlFor = 'weather-rain';
+    labelEl.textContent = 'Rain';
+
+    const volSlider = document.createElement('input');
+    volSlider.type = 'range';
+    volSlider.min = '0';
+    volSlider.max = '100';
+    volSlider.value = String(Math.round(rainLayer.volume * 100));
+    volSlider.className = 'sound-slider';
+    volSlider.addEventListener('input', () => {
+      rainLayer.volume = parseInt(volSlider.value, 10) / 100;
+      this.audio.updateLayerGain('rain');
+    });
+
+    toggleRow.appendChild(toggle);
+    toggleRow.appendChild(labelEl);
+    toggleRow.appendChild(volSlider);
+    dialog.appendChild(toggleRow);
+
+    const intensityRow = document.createElement('div');
+    intensityRow.className = 'sound-layer-row';
+
+    const spacer = document.createElement('div');
+    spacer.style.width = '16px';
+    spacer.style.flexShrink = '0';
+
+    const intLabel = document.createElement('label');
+    intLabel.textContent = 'Intensity';
+    intLabel.style.flex = '0 0 70px';
+    intLabel.style.fontSize = '12px';
+    intLabel.style.color = '#a89878';
+
+    const intSlider = document.createElement('input');
+    intSlider.type = 'range';
+    intSlider.min = '10';
+    intSlider.max = '100';
+    intSlider.value = String(Math.round(rainLayer.intensity * 100));
+    intSlider.className = 'sound-slider';
+    intSlider.addEventListener('input', () => {
+      const val = parseInt(intSlider.value, 10) / 100;
+      rainLayer.setIntensity(val);
+      this.rainRenderer.setIntensity(val);
+      this.audio.updateLayerGain('rain');
+    });
+
+    intensityRow.appendChild(spacer);
+    intensityRow.appendChild(intLabel);
+    intensityRow.appendChild(intSlider);
+    dialog.appendChild(intensityRow);
   }
 }
