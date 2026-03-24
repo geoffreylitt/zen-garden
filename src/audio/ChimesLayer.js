@@ -9,10 +9,10 @@ export class ChimesLayer {
     this.timer = null;
   }
 
-  setup(ctx) {
+  setup(ctx, destination) {
     this.gain = ctx.createGain();
     this.gain.gain.value = this.enabled ? this.volume * this.maxGain : 0;
-    this.gain.connect(ctx.destination);
+    this.gain.connect(destination || ctx.destination);
     this.scheduleChime(ctx);
   }
 

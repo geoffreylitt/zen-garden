@@ -3,7 +3,7 @@ export class RakeSound {
     this.gainNode = null;
   }
 
-  setup(ctx) {
+  setup(ctx, destination) {
     const bufferSize = ctx.sampleRate * 2;
     const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
     const data = buffer.getChannelData(0);
@@ -25,7 +25,7 @@ export class RakeSound {
 
     source.connect(filter);
     filter.connect(this.gainNode);
-    this.gainNode.connect(ctx.destination);
+    this.gainNode.connect(destination || ctx.destination);
     source.start();
   }
 
