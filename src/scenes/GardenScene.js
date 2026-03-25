@@ -10,6 +10,7 @@ import { ShrubTool } from '../tools/ShrubTool.js';
 import { TeahouseTool } from '../tools/TeahouseTool.js';
 import { Toolbar } from '../ui/Toolbar.js';
 import { SoundDialog } from '../ui/SoundDialog.js';
+import { FallingLeaves } from '../graphics/FallingLeaves.js';
 
 export class GardenScene extends Phaser.Scene {
   constructor() {
@@ -43,6 +44,10 @@ export class GardenScene extends Phaser.Scene {
     this.toolbar = new Toolbar(this, (name) => this.handleToolSelect(name));
     this.toolbar.create();
     this.toolbar.updateSoundButton(this.audio.anyLayerEnabled);
+
+    // Ambient effects
+    this.fallingLeaves = new FallingLeaves(this);
+    this.fallingLeaves.create();
 
     // Input
     this.setupInput();
@@ -81,9 +86,10 @@ export class GardenScene extends Phaser.Scene {
     });
   }
 
-  update() {
+  update(time, delta) {
     if (this.sandCanvas.dirty) {
       this.sandCanvas.sync();
     }
+    this.fallingLeaves.update(delta);
   }
 }
