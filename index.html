@@ -6,7 +6,20 @@
   <title>Zen Garden</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background: #1a1a1a; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+    body {
+      background: linear-gradient(135deg, #1a0040, #00001a, #001a00, #1a0040);
+      background-size: 400% 400%;
+      animation: bgshift 8s ease infinite;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+    @keyframes bgshift {
+      0%   { background-position: 0% 50%; }
+      50%  { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
     canvas { image-rendering: pixelated; }
 
     #sound-settings-overlay {
@@ -15,7 +28,7 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0, 0, 0, 0.45);
+      background: rgba(20, 0, 60, 0.6);
       display: none;
       justify-content: center;
       align-items: center;
@@ -23,14 +36,14 @@
     }
 
     #sound-settings-dialog {
-      background: #4a3728;
-      border: 2px solid #6b5340;
+      background: linear-gradient(135deg, #2a0060, #003060, #002a00);
+      border: 2px solid #ff00cc;
       border-radius: 8px;
       padding: 16px 20px;
       min-width: 300px;
-      color: #e8dcbc;
+      color: #ff88ff;
       font-family: monospace;
-      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 4px 32px rgba(255, 0, 200, 0.4);
     }
 
     .sound-dialog-title {
@@ -39,16 +52,17 @@
       align-items: center;
       margin-bottom: 16px;
       padding-bottom: 10px;
-      border-bottom: 1px solid #6b5340;
+      border-bottom: 1px solid #cc00ff;
       font-size: 14px;
       font-weight: bold;
       letter-spacing: 0.5px;
+      color: #ffff00;
     }
 
     .sound-dialog-close {
       background: none;
       border: none;
-      color: #c8b898;
+      color: #ff88ff;
       font-size: 22px;
       cursor: pointer;
       padding: 0 2px;
@@ -56,7 +70,7 @@
     }
 
     .sound-dialog-close:hover {
-      color: #fff;
+      color: #ffffff;
     }
 
     .sound-layer-row {
@@ -75,10 +89,11 @@
       font-size: 12px;
       cursor: pointer;
       user-select: none;
+      color: #00ffcc;
     }
 
     .sound-layer-row input[type="checkbox"] {
-      accent-color: #8a9a6a;
+      accent-color: #ff00cc;
       width: 16px;
       height: 16px;
       cursor: pointer;
@@ -90,7 +105,7 @@
       -webkit-appearance: none;
       appearance: none;
       height: 4px;
-      background: #6b5340;
+      background: #440088;
       border-radius: 2px;
       outline: none;
       cursor: pointer;
@@ -101,27 +116,27 @@
       appearance: none;
       width: 14px;
       height: 14px;
-      background: #c8b898;
+      background: #ff00cc;
       border-radius: 50%;
       cursor: pointer;
       transition: background 0.15s;
     }
 
     .sound-slider::-webkit-slider-thumb:hover {
-      background: #e8dcbc;
+      background: #ffff00;
     }
 
     .sound-slider::-moz-range-thumb {
       width: 14px;
       height: 14px;
-      background: #c8b898;
+      background: #ff00cc;
       border-radius: 50%;
       cursor: pointer;
       border: none;
     }
 
     .sound-slider::-moz-range-thumb:hover {
-      background: #e8dcbc;
+      background: #ffff00;
     }
   </style>
 </head>

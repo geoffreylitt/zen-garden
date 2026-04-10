@@ -3,11 +3,12 @@ export const H = 360;
 export const TOOLBAR_H = 30;
 export const SAND_H = H - TOOLBAR_H;
 
-// Sand colors
-export const SAND_BASE = [0xd2, 0xc4, 0xa0];
-export const GROOVE_COLOR = [0xb0, 0xa0, 0x78];
-export const RIDGE_COLOR = [0xe8, 0xdc, 0xbc];
-export const BG_COLOR = [0x3a, 0x3a, 0x36];
+// Sand colors — vivid rainbow fill is driven per-pixel in SandCanvas.fill();
+// these are kept as vivid fallbacks/overrides for rake grooves and ridges.
+export const SAND_BASE = [0xff, 0x80, 0xc0]; // hot pink fallback
+export const GROOVE_COLOR = [0x00, 0xff, 0xff]; // electric cyan groove
+export const RIDGE_COLOR = [0xff, 0xff, 0x00]; // neon yellow ridge
+export const BG_COLOR = [0x18, 0x00, 0x40]; // deep purple surround
 
 // Rake config
 export const TINE_COUNT = 5;

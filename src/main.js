@@ -6,7 +6,7 @@ const config = {
   width: 480,
   height: 360,
   pixelArt: true,
-  backgroundColor: '#2d2d2d',
+  backgroundColor: '#180040',
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
