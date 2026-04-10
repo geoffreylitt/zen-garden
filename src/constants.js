@@ -4,10 +4,10 @@ export const TOOLBAR_H = 30;
 export const SAND_H = H - TOOLBAR_H;
 
 // Sand colors
-export const SAND_BASE = [0xd2, 0xc4, 0xa0];
-export const GROOVE_COLOR = [0xb0, 0xa0, 0x78];
-export const RIDGE_COLOR = [0xe8, 0xdc, 0xbc];
-export const BG_COLOR = [0x3a, 0x3a, 0x36];
+export const SAND_BASE = [0xb8, 0xc4, 0xb0];
+export const GROOVE_COLOR = [0x8a, 0x9e, 0x88];
+export const RIDGE_COLOR = [0xd0, 0xe0, 0xcc];
+export const BG_COLOR = [0x2a, 0x36, 0x2e];
 
 // Rake config
 export const TINE_COUNT = 5;
