@@ -3,11 +3,11 @@ export const H = 360;
 export const TOOLBAR_H = 30;
 export const SAND_H = H - TOOLBAR_H;
 
-// Sand colors
-export const SAND_BASE = [0xd2, 0xc4, 0xa0];
-export const GROOVE_COLOR = [0xb0, 0xa0, 0x78];
-export const RIDGE_COLOR = [0xe8, 0xdc, 0xbc];
-export const BG_COLOR = [0x3a, 0x3a, 0x36];
+// Sand colors — wild rainbow edition
+export const SAND_BASE = [0xff, 0x88, 0xdd];   // hot pink base
+export const GROOVE_COLOR = [0x00, 0xff, 0xff]; // cyan grooves
+export const RIDGE_COLOR = [0xff, 0xff, 0x00];  // yellow ridges
+export const BG_COLOR = [0x18, 0x00, 0x3c];     // deep purple void
 
 // Rake config
 export const TINE_COUNT = 5;

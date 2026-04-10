@@ -3,10 +3,23 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Zen Garden</title>
+  <title>Zen Garden 🌈</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background: #1a1a1a; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+    body {
+      background: linear-gradient(135deg, #1a003c, #000a2a, #001a00, #1a0030, #2a0010);
+      background-size: 400% 400%;
+      animation: bgShift 8s ease infinite;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+    @keyframes bgShift {
+      0%   { background-position: 0% 50%; }
+      50%  { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
     canvas { image-rendering: pixelated; }
 
     #sound-settings-overlay {
@@ -15,7 +28,7 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0, 0, 0, 0.45);
+      background: rgba(0, 0, 0, 0.6);
       display: none;
       justify-content: center;
       align-items: center;
@@ -23,14 +36,28 @@
     }
 
     #sound-settings-dialog {
-      background: #4a3728;
-      border: 2px solid #6b5340;
+      background: linear-gradient(135deg, #2a003a, #003a2a);
+      border: 2px solid transparent;
       border-radius: 8px;
       padding: 16px 20px;
       min-width: 300px;
-      color: #e8dcbc;
+      color: #ffffff;
       font-family: monospace;
-      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 0 24px #ff00ff88, 0 0 48px #00ffff44, 0 4px 24px rgba(0, 0, 0, 0.7);
+      /* Animated rainbow border */
+      outline: 2px solid;
+      outline-color: #ff00ff;
+      animation: rainbowBorder 3s linear infinite;
+    }
+
+    @keyframes rainbowBorder {
+      0%   { outline-color: #ff0044; box-shadow: 0 0 20px #ff004488, 0 4px 24px rgba(0,0,0,0.7); }
+      16%  { outline-color: #ff8800; box-shadow: 0 0 20px #ff880088, 0 4px 24px rgba(0,0,0,0.7); }
+      33%  { outline-color: #ffee00; box-shadow: 0 0 20px #ffee0088, 0 4px 24px rgba(0,0,0,0.7); }
+      50%  { outline-color: #00ff88; box-shadow: 0 0 20px #00ff8888, 0 4px 24px rgba(0,0,0,0.7); }
+      66%  { outline-color: #0088ff; box-shadow: 0 0 20px #0088ff88, 0 4px 24px rgba(0,0,0,0.7); }
+      83%  { outline-color: #cc44ff; box-shadow: 0 0 20px #cc44ff88, 0 4px 24px rgba(0,0,0,0.7); }
+      100% { outline-color: #ff0044; box-shadow: 0 0 20px #ff004488, 0 4px 24px rgba(0,0,0,0.7); }
     }
 
     .sound-dialog-title {
@@ -39,24 +66,30 @@
       align-items: center;
       margin-bottom: 16px;
       padding-bottom: 10px;
-      border-bottom: 1px solid #6b5340;
+      border-bottom: 1px solid #ff00ff66;
       font-size: 14px;
       font-weight: bold;
       letter-spacing: 0.5px;
+      background: linear-gradient(90deg, #ff0066, #ff8800, #ffee00, #00ff88, #0088ff, #cc44ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
     }
 
     .sound-dialog-close {
       background: none;
       border: none;
-      color: #c8b898;
+      color: #ff88ff;
       font-size: 22px;
       cursor: pointer;
       padding: 0 2px;
       line-height: 1;
+      -webkit-text-fill-color: #ff88ff;
     }
 
     .sound-dialog-close:hover {
       color: #fff;
+      -webkit-text-fill-color: #fff;
     }
 
     .sound-layer-row {
@@ -75,10 +108,11 @@
       font-size: 12px;
       cursor: pointer;
       user-select: none;
+      color: #ddddff;
     }
 
     .sound-layer-row input[type="checkbox"] {
-      accent-color: #8a9a6a;
+      accent-color: #ff00ff;
       width: 16px;
       height: 16px;
       cursor: pointer;
@@ -90,7 +124,7 @@
       -webkit-appearance: none;
       appearance: none;
       height: 4px;
-      background: #6b5340;
+      background: linear-gradient(90deg, #ff0066, #ffee00, #00ffcc, #0066ff, #cc00ff);
       border-radius: 2px;
       outline: none;
       cursor: pointer;
@@ -101,27 +135,29 @@
       appearance: none;
       width: 14px;
       height: 14px;
-      background: #c8b898;
+      background: #ffffff;
       border-radius: 50%;
       cursor: pointer;
       transition: background 0.15s;
+      box-shadow: 0 0 6px #ff00ff;
     }
 
     .sound-slider::-webkit-slider-thumb:hover {
-      background: #e8dcbc;
+      background: #ff88ff;
     }
 
     .sound-slider::-moz-range-thumb {
       width: 14px;
       height: 14px;
-      background: #c8b898;
+      background: #ffffff;
       border-radius: 50%;
       cursor: pointer;
       border: none;
+      box-shadow: 0 0 6px #ff00ff;
     }
 
     .sound-slider::-moz-range-thumb:hover {
-      background: #e8dcbc;
+      background: #ff88ff;
     }
   </style>
 </head>

@@ -24,24 +24,57 @@ export function drawBorder(scene) {
     });
   }
 
-  gfx.lineStyle(5, 0x888880, 1);
-  gfx.beginPath();
-  gfx.moveTo(points[0].x, points[0].y);
-  for (let i = 1; i < points.length; i++) {
-    gfx.lineTo(points[i].x, points[i].y);
+  // Draw rainbow border: cycle hue along the perimeter
+  for (let i = 0; i < points.length; i++) {
+    const hue = i / points.length;
+    const next = (i + 1) % points.length;
+    // Convert hue to hex color
+    const h = hue * 6;
+    const sector = Math.floor(h);
+    const f = h - sector;
+    const q = Math.round((1 - f) * 255);
+    const t = Math.round(f * 255);
+    let r, g, b;
+    switch (sector % 6) {
+      case 0: r = 255; g = t;   b = 0;   break;
+      case 1: r = q;   g = 255; b = 0;   break;
+      case 2: r = 0;   g = 255; b = t;   break;
+      case 3: r = 0;   g = q;   b = 255; break;
+      case 4: r = t;   g = 0;   b = 255; break;
+      case 5: r = 255; g = 0;   b = q;   break;
+    }
+    const color = (r << 16) | (g << 8) | b;
+    gfx.lineStyle(5, color, 1);
+    gfx.beginPath();
+    gfx.moveTo(points[i].x, points[i].y);
+    gfx.lineTo(points[next].x, points[next].y);
+    gfx.strokePath();
   }
-  gfx.closePath();
-  gfx.strokePath();
 
+  // Rainbow sparkle dots around the border
   for (let i = 0; i < points.length; i++) {
     if (Math.random() < 0.4) {
       const p = points[i];
       const ox = (Math.random() - 0.5) * 6;
       const oy = (Math.random() - 0.5) * 6;
-      const green = 0x40 + Math.floor(Math.random() * 0x30);
-      const color = (0x20 << 16) | (green << 8) | 0x10;
-      gfx.fillStyle(color, 0.8);
-      gfx.fillCircle(p.x + ox, p.y + oy, 1 + Math.random() * 1.5);
+      // Random vivid hue
+      const hue = Math.random() * 6;
+      const sector = Math.floor(hue);
+      const f = hue - sector;
+      const t = Math.round(f * 255);
+      const q = Math.round((1 - f) * 255);
+      let r, g, b;
+      switch (sector % 6) {
+        case 0: r = 255; g = t;   b = 0;   break;
+        case 1: r = q;   g = 255; b = 0;   break;
+        case 2: r = 0;   g = 255; b = t;   break;
+        case 3: r = 0;   g = q;   b = 255; break;
+        case 4: r = t;   g = 0;   b = 255; break;
+        case 5: r = 255; g = 0;   b = q;   break;
+      }
+      const color = (r << 16) | (g << 8) | b;
+      gfx.fillStyle(color, 0.9);
+      gfx.fillCircle(p.x + ox, p.y + oy, 1 + Math.random() * 2);
     }
   }
 }
