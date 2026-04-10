@@ -2,6 +2,10 @@ import { W, SAND_H, TOOLBAR_H } from '../constants.js';
 
 const TOOL_NAMES = ['RAKE', 'ROCK', 'SHRUB', 'TEAHOUSE', 'CLEAR', 'SOUND'];
 
+// One vivid rainbow hue per button
+const BTN_COLORS        = [0xff2244, 0xff8800, 0xdddd00, 0x00cc44, 0x0099ff, 0xcc00ff];
+const BTN_ACTIVE_COLORS = [0xff9999, 0xffcc77, 0xffff88, 0x88ffaa, 0x88ddff, 0xee88ff];
+
 export class Toolbar {
   constructor(scene, onSelectTool) {
     this.scene = scene;
@@ -13,15 +17,20 @@ export class Toolbar {
   create() {
     const y = SAND_H;
     const gfx = this.scene.add.graphics();
-    gfx.fillStyle(0x4a3728, 1);
-    gfx.fillRect(0, y, W, TOOLBAR_H);
-    gfx.lineStyle(1, 0x3d2e1f, 0.3);
-    for (let ly = y + 5; ly < y + TOOLBAR_H; ly += 6) {
-      gfx.beginPath();
-      gfx.moveTo(0, ly);
-      gfx.lineTo(W, ly);
-      gfx.strokePath();
-    }
+
+    // Rainbow striped toolbar background
+    const segW = W / TOOL_NAMES.length;
+    BTN_COLORS.forEach((c, ci) => {
+      gfx.fillStyle(c, 0.55);
+      gfx.fillRect(ci * segW, y, segW, TOOLBAR_H);
+    });
+
+    // Thin bright top edge
+    gfx.lineStyle(2, 0xffffff, 0.7);
+    gfx.beginPath();
+    gfx.moveTo(0, y);
+    gfx.lineTo(W, y);
+    gfx.strokePath();
 
     const btnW = 70;
     const gap = (W - TOOL_NAMES.length * btnW) / (TOOL_NAMES.length + 1);
@@ -33,12 +42,12 @@ export class Toolbar {
 
       const bg = this.scene.add.graphics();
       const isActive = name === this.activeTool;
-      this.drawButton(bg, bx, by, btnW, bh, isActive);
+      this.drawButton(bg, bx, by, btnW, bh, isActive, idx);
 
       const label = this.scene.add.text(bx + btnW / 2, by + bh / 2, name, {
         fontFamily: 'monospace',
         fontSize: '10px',
-        color: isActive ? '#4a3728' : '#c8b898',
+        color: isActive ? '#1a0040' : '#ffffff',
         fontStyle: 'bold',
       });
       label.setOrigin(0.5, 0.5);
@@ -48,13 +57,14 @@ export class Toolbar {
 
       hitZone.on('pointerdown', () => this.onSelectTool(name));
 
-      this.buttons.push({ name, bg, label, bx, by, btnW, bh, hitZone });
+      this.buttons.push({ name, bg, label, bx, by, btnW, bh, hitZone, idx });
     });
   }
 
-  drawButton(gfx, x, y, w, h, active) {
+  drawButton(gfx, x, y, w, h, active, idx = 0) {
     gfx.clear();
-    gfx.fillStyle(active ? 0xe8dcbc : 0x5c4433, 1);
+    gfx.fillStyle(active ? BTN_ACTIVE_COLORS[idx % BTN_ACTIVE_COLORS.length]
+                         : BTN_COLORS[idx % BTN_COLORS.length], 1);
     gfx.fillRoundedRect(x, y, w, h, 3);
   }
 
@@ -63,8 +73,8 @@ export class Toolbar {
     this.buttons.forEach((btn) => {
       if (btn.name === 'SOUND') return;
       const isActive = btn.name === this.activeTool;
-      this.drawButton(btn.bg, btn.bx, btn.by, btn.btnW, btn.bh, isActive);
-      btn.label.setColor(isActive ? '#4a3728' : '#c8b898');
+      this.drawButton(btn.bg, btn.bx, btn.by, btn.btnW, btn.bh, isActive, btn.idx);
+      btn.label.setColor(isActive ? '#1a0040' : '#ffffff');
     });
   }
 
@@ -72,10 +82,11 @@ export class Toolbar {
     const soundBtn = this.buttons.find(b => b.name === 'SOUND');
     if (!soundBtn) return;
     soundBtn.bg.clear();
-    soundBtn.bg.fillStyle(anyEnabled ? 0x607860 : 0x5c4433, 1);
+    const color = anyEnabled ? 0xee88ff : BTN_COLORS[5];
+    soundBtn.bg.fillStyle(color, 1);
     soundBtn.bg.fillRoundedRect(
       soundBtn.bx, soundBtn.by, soundBtn.btnW, soundBtn.bh, 3
     );
-    soundBtn.label.setColor(anyEnabled ? '#e8dcbc' : '#886655');
+    soundBtn.label.setColor(anyEnabled ? '#1a0040' : '#ffffff');
   }
 }
