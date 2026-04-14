@@ -6,7 +6,7 @@
   <title>Zen Garden</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background: #1a1a1a; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+    body { background: linear-gradient(135deg, #1a003d 0%, #3d001a 50%, #001a3d 100%); display: flex; justify-content: center; align-items: center; min-height: 100vh; }
     canvas { image-rendering: pixelated; }
 
     #sound-settings-overlay {
@@ -23,14 +23,14 @@
     }
 
     #sound-settings-dialog {
-      background: #4a3728;
-      border: 2px solid #6b5340;
+      background: linear-gradient(135deg, #1a003d 0%, #3d001a 100%);
+      border: 2px solid #ff00cc;
       border-radius: 8px;
       padding: 16px 20px;
       min-width: 300px;
-      color: #e8dcbc;
+      color: #ffff00;
       font-family: monospace;
-      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 4px 32px rgba(255, 0, 200, 0.5);
     }
 
     .sound-dialog-title {
@@ -39,24 +39,30 @@
       align-items: center;
       margin-bottom: 16px;
       padding-bottom: 10px;
-      border-bottom: 1px solid #6b5340;
+      border-bottom: 1px solid #ff00cc;
       font-size: 14px;
       font-weight: bold;
       letter-spacing: 0.5px;
+      background: linear-gradient(90deg, #ff0080, #ffff00, #00ffcc);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
     }
 
     .sound-dialog-close {
       background: none;
       border: none;
-      color: #c8b898;
+      color: #ff00cc;
       font-size: 22px;
       cursor: pointer;
       padding: 0 2px;
       line-height: 1;
+      -webkit-text-fill-color: #ff00cc;
     }
 
     .sound-dialog-close:hover {
       color: #fff;
+      -webkit-text-fill-color: #fff;
     }
 
     .sound-layer-row {
@@ -75,10 +81,11 @@
       font-size: 12px;
       cursor: pointer;
       user-select: none;
+      color: #00ffff;
     }
 
     .sound-layer-row input[type="checkbox"] {
-      accent-color: #8a9a6a;
+      accent-color: #ff00cc;
       width: 16px;
       height: 16px;
       cursor: pointer;
@@ -90,7 +97,7 @@
       -webkit-appearance: none;
       appearance: none;
       height: 4px;
-      background: #6b5340;
+      background: linear-gradient(90deg, #ff0080, #ffff00, #00ffcc);
       border-radius: 2px;
       outline: none;
       cursor: pointer;
@@ -101,27 +108,30 @@
       appearance: none;
       width: 14px;
       height: 14px;
-      background: #c8b898;
+      background: #ff00ff;
       border-radius: 50%;
       cursor: pointer;
       transition: background 0.15s;
+      box-shadow: 0 0 6px #ff00ff;
     }
 
     .sound-slider::-webkit-slider-thumb:hover {
-      background: #e8dcbc;
+      background: #ffffff;
+      box-shadow: 0 0 10px #ffffff;
     }
 
     .sound-slider::-moz-range-thumb {
       width: 14px;
       height: 14px;
-      background: #c8b898;
+      background: #ff00ff;
       border-radius: 50%;
       cursor: pointer;
       border: none;
+      box-shadow: 0 0 6px #ff00ff;
     }
 
     .sound-slider::-moz-range-thumb:hover {
-      background: #e8dcbc;
+      background: #ffffff;
     }
   </style>
 </head>

@@ -1,4 +1,6 @@
-import { SAND_H, TINE_COUNT, TINE_SPACING, GROOVE_COLOR, RIDGE_COLOR } from '../constants.js';
+import { SAND_H, TINE_COUNT, TINE_SPACING } from '../constants.js';
+import { hslToRgb, rainbowHue } from '../rainbow.js';
+import { W } from '../constants.js';
 
 export class RakeTool {
   constructor(sandCanvas, gardenMask, audioManager) {
@@ -54,13 +56,17 @@ export class RakeTool {
 
         if (!this.gardenMask.isInGarden(tx, ty)) continue;
 
-        this.sandCanvas.setPixel(tx, ty, GROOVE_COLOR);
+        const hue = rainbowHue(tx, W);
+        const grooveColor = hslToRgb(hue, 1.0, 0.30);
+        const ridgeColor  = hslToRgb((hue + 180) % 360, 1.0, 0.90);
+
+        this.sandCanvas.setPixel(tx, ty, grooveColor);
         const rx1 = Math.floor(tx + px);
         const ry1 = Math.floor(ty + py);
         const rx2 = Math.floor(tx - px);
         const ry2 = Math.floor(ty - py);
-        if (this.gardenMask.isInGarden(rx1, ry1)) this.sandCanvas.setPixel(rx1, ry1, RIDGE_COLOR);
-        if (this.gardenMask.isInGarden(rx2, ry2)) this.sandCanvas.setPixel(rx2, ry2, RIDGE_COLOR);
+        if (this.gardenMask.isInGarden(rx1, ry1)) this.sandCanvas.setPixel(rx1, ry1, ridgeColor);
+        if (this.gardenMask.isInGarden(rx2, ry2)) this.sandCanvas.setPixel(rx2, ry2, ridgeColor);
       }
     }
     this.sandCanvas.dirty = true;

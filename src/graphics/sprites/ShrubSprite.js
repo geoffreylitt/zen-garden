@@ -1,3 +1,5 @@
+import { hslToRgb } from '../../rainbow.js';
+
 export function createShrubTexture(scene) {
   const id = 'shrub_' + Date.now() + '_' + Math.random();
   const w = 12;
@@ -6,6 +8,9 @@ export function createShrubTexture(scene) {
   const ctx = tex.context;
   const imgData = ctx.createImageData(w, h);
   const d = imgData.data;
+
+  // Each shrub gets a random vibrant non-green hue for maximum garishness
+  const baseHue = Math.random() * 360;
 
   const cx = w / 2;
   const cy = h / 2;
@@ -17,11 +22,12 @@ export function createShrubTexture(scene) {
       const noise = Math.sin(px * 3) * 0.15 + Math.cos(py * 4) * 0.1;
       if (dist + noise <= 0.9) {
         const i = (py * w + px) * 4;
-        const green = 0x50 + Math.floor(Math.random() * 0x40);
-        const dark = py > cy ? 0.7 : 1.0;
-        d[i] = Math.floor(0x20 * dark);
-        d[i + 1] = Math.floor(green * dark);
-        d[i + 2] = Math.floor(0x15 * dark);
+        const lightness = (py > cy ? 0.35 : 0.55) + (Math.random() - 0.5) * 0.1;
+        const hue = (baseHue + (Math.random() - 0.5) * 40 + 360) % 360;
+        const [r, g, b] = hslToRgb(hue, 1.0, lightness);
+        d[i] = r;
+        d[i + 1] = g;
+        d[i + 2] = b;
         d[i + 3] = 255;
       }
     }

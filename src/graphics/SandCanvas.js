@@ -1,4 +1,5 @@
-import { W, SAND_H, SAND_BASE, BG_COLOR } from '../constants.js';
+import { W, SAND_H, BG_COLOR } from '../constants.js';
+import { hslToRgb, rainbowHue } from '../rainbow.js';
 
 export class SandCanvas {
   constructor(scene, gardenMask) {
@@ -22,10 +23,12 @@ export class SandCanvas {
       for (let x = 0; x < W; x++) {
         const i = (y * W + x) * 4;
         if (this.gardenMask.data[y * W + x]) {
-          const noise = (Math.random() - 0.5) * 16;
-          this.pixels[i] = SAND_BASE[0] + noise;
-          this.pixels[i + 1] = SAND_BASE[1] + noise;
-          this.pixels[i + 2] = SAND_BASE[2] + noise;
+          const hue = rainbowHue(x, W);
+          const lightness = 0.60 + (Math.random() - 0.5) * 0.08;
+          const [r, g, b] = hslToRgb(hue, 1.0, lightness);
+          this.pixels[i] = r;
+          this.pixels[i + 1] = g;
+          this.pixels[i + 2] = b;
           this.pixels[i + 3] = 255;
         } else {
           this.pixels[i] = BG_COLOR[0];

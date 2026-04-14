@@ -3,11 +3,11 @@ export const H = 360;
 export const TOOLBAR_H = 30;
 export const SAND_H = H - TOOLBAR_H;
 
-// Sand colors
-export const SAND_BASE = [0xd2, 0xc4, 0xa0];
-export const GROOVE_COLOR = [0xb0, 0xa0, 0x78];
-export const RIDGE_COLOR = [0xe8, 0xdc, 0xbc];
-export const BG_COLOR = [0x3a, 0x3a, 0x36];
+// Sand colors — vibrant rainbow mode 🌈
+export const SAND_BASE = [0xff, 0xee, 0x55]; // kept for fallback; fill uses rainbow
+export const GROOVE_COLOR = [0xff, 0x00, 0xcc]; // kept for fallback; rake uses rainbow
+export const RIDGE_COLOR = [0x00, 0xff, 0xff];  // kept for fallback; rake uses rainbow
+export const BG_COLOR = [0x0d, 0x00, 0x2a];     // deep indigo background
 
 // Rake config
 export const TINE_COUNT = 5;
