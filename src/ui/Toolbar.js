@@ -1,6 +1,6 @@
 import { W, SAND_H, TOOLBAR_H } from '../constants.js';
 
-const TOOL_NAMES = ['RAKE', 'ROCK', 'SHRUB', 'TEAHOUSE', 'CLEAR', 'SOUND'];
+const TOOL_NAMES = ['RAKE', 'MEGARAKE', 'ROCK', 'SHRUB', 'TEAHOUSE', 'CLEAR', 'SOUND'];
 
 export class Toolbar {
   constructor(scene, onSelectTool) {

@@ -13,5 +13,9 @@ export const BG_COLOR = [0x3a, 0x3a, 0x36];
 export const TINE_COUNT = 5;
 export const TINE_SPACING = 3;
 
+// Mega rake config (3x normal)
+export const MEGA_TINE_COUNT = 15;
+export const MEGA_TINE_SPACING = 9;
+
 // Pentatonic chime frequencies (C5-D6 range)
 export const CHIME_NOTES = [523.25, 587.33, 659.25, 783.99, 880.0, 1046.50, 1174.66];
