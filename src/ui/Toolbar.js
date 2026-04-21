@@ -1,6 +1,6 @@
 import { W, SAND_H, TOOLBAR_H } from '../constants.js';
 
-const TOOL_NAMES = ['RAKE', 'ROCK', 'SHRUB', 'TEAHOUSE', 'CLEAR', 'SOUND'];
+const TOOL_NAMES = ['RAKE', 'ROCK', 'SHRUB', 'TEAHOUSE', 'CLEAR', 'SOUND', 'PHOTO'];
 
 export class Toolbar {
   constructor(scene, onSelectTool) {
@@ -8,6 +8,7 @@ export class Toolbar {
     this.onSelectTool = onSelectTool;
     this.activeTool = 'RAKE';
     this.buttons = [];
+    this._allObjects = [];
   }
 
   create() {
@@ -22,8 +23,9 @@ export class Toolbar {
       gfx.lineTo(W, ly);
       gfx.strokePath();
     }
+    this._allObjects.push(gfx);
 
-    const btnW = 70;
+    const btnW = 60;
     const gap = (W - TOOL_NAMES.length * btnW) / (TOOL_NAMES.length + 1);
 
     TOOL_NAMES.forEach((name, idx) => {
@@ -37,18 +39,20 @@ export class Toolbar {
 
       const label = this.scene.add.text(bx + btnW / 2, by + bh / 2, name, {
         fontFamily: 'monospace',
-        fontSize: '10px',
+        fontSize: '9px',
         color: isActive ? '#4a3728' : '#c8b898',
         fontStyle: 'bold',
       });
       label.setOrigin(0.5, 0.5);
 
-      const hitZone = this.scene.add.zone(bx + btnW / 2, by + bh / 2, btnW, bh)
+      const hitZone = this.scene.add
+        .zone(bx + btnW / 2, by + bh / 2, btnW, bh)
         .setInteractive({ useHandCursor: true });
 
       hitZone.on('pointerdown', () => this.onSelectTool(name));
 
       this.buttons.push({ name, bg, label, bx, by, btnW, bh, hitZone });
+      this._allObjects.push(bg, label, hitZone);
     });
   }
 
@@ -61,7 +65,7 @@ export class Toolbar {
   setActiveTool(name) {
     this.activeTool = name;
     this.buttons.forEach((btn) => {
-      if (btn.name === 'SOUND') return;
+      if (btn.name === 'SOUND' || btn.name === 'PHOTO') return;
       const isActive = btn.name === this.activeTool;
       this.drawButton(btn.bg, btn.bx, btn.by, btn.btnW, btn.bh, isActive);
       btn.label.setColor(isActive ? '#4a3728' : '#c8b898');
@@ -69,13 +73,23 @@ export class Toolbar {
   }
 
   updateSoundButton(anyEnabled) {
-    const soundBtn = this.buttons.find(b => b.name === 'SOUND');
+    const soundBtn = this.buttons.find((b) => b.name === 'SOUND');
     if (!soundBtn) return;
     soundBtn.bg.clear();
     soundBtn.bg.fillStyle(anyEnabled ? 0x607860 : 0x5c4433, 1);
     soundBtn.bg.fillRoundedRect(
-      soundBtn.bx, soundBtn.by, soundBtn.btnW, soundBtn.bh, 3
+      soundBtn.bx,
+      soundBtn.by,
+      soundBtn.btnW,
+      soundBtn.bh,
+      3
     );
     soundBtn.label.setColor(anyEnabled ? '#e8dcbc' : '#886655');
+  }
+
+  setVisible(visible) {
+    this._allObjects.forEach((obj) => obj.setVisible(visible));
+    // Zones need active state toggled so they don't intercept clicks in photo mode
+    this.buttons.forEach((btn) => btn.hitZone.setActive(visible));
   }
 }
