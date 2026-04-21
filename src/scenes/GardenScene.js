@@ -10,11 +10,13 @@ import { ShrubTool } from '../tools/ShrubTool.js';
 import { TeahouseTool } from '../tools/TeahouseTool.js';
 import { Toolbar } from '../ui/Toolbar.js';
 import { SoundDialog } from '../ui/SoundDialog.js';
+import { PhotoModeOverlay } from '../ui/PhotoModeOverlay.js';
 
 export class GardenScene extends Phaser.Scene {
   constructor() {
     super('GardenScene');
     this.activeTool = 'RAKE';
+    this.inPhotoMode = false;
   }
 
   create() {
@@ -44,6 +46,9 @@ export class GardenScene extends Phaser.Scene {
     this.toolbar.create();
     this.toolbar.updateSoundButton(this.audio.anyLayerEnabled);
 
+    this.photoMode = new PhotoModeOverlay(this);
+    this.photoMode.create();
+
     // Input
     this.setupInput();
   }
@@ -58,26 +63,47 @@ export class GardenScene extends Phaser.Scene {
       this.soundDialog.open();
       return;
     }
+    if (name === 'PHOTO') {
+      this._enterPhotoMode();
+      return;
+    }
     this.activeTool = name;
     this.toolbar.setActiveTool(name);
+  }
+
+  _enterPhotoMode() {
+    this.inPhotoMode = true;
+    this.toolbar.setVisible(false);
+    this.photoMode.open(() => {
+      this.inPhotoMode = false;
+      this.toolbar.setVisible(true);
+    });
   }
 
   setupInput() {
     this.input.on('pointerdown', (pointer) => {
       this.audio.ensureStarted();
+      if (this.inPhotoMode) return;
       if (pointer.y >= SAND_H) return;
       const tool = this.tools[this.activeTool];
       if (tool && tool.onDown) tool.onDown(pointer);
     });
 
     this.input.on('pointermove', (pointer) => {
+      if (this.inPhotoMode) return;
       const tool = this.tools[this.activeTool];
       if (tool && tool.onMove) tool.onMove(pointer);
     });
 
     this.input.on('pointerup', () => {
+      if (this.inPhotoMode) return;
       const tool = this.tools[this.activeTool];
       if (tool && tool.onUp) tool.onUp();
+    });
+
+    // Escape key exits photo mode
+    this.input.keyboard.on('keydown-ESC', () => {
+      if (this.inPhotoMode) this.photoMode.close();
     });
   }
 
