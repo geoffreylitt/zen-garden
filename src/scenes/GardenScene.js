@@ -2,12 +2,14 @@ import Phaser from 'phaser';
 import { SAND_H } from '../constants.js';
 import { GardenMask } from '../graphics/GardenMask.js';
 import { SandCanvas } from '../graphics/SandCanvas.js';
+import { MossCanvas } from '../graphics/MossCanvas.js';
 import { drawBorder } from '../graphics/BorderRenderer.js';
 import { AudioManager } from '../audio/AudioManager.js';
 import { RakeTool } from '../tools/RakeTool.js';
 import { RockTool } from '../tools/RockTool.js';
 import { ShrubTool } from '../tools/ShrubTool.js';
 import { TeahouseTool } from '../tools/TeahouseTool.js';
+import { MossTool } from '../tools/MossTool.js';
 import { Toolbar } from '../ui/Toolbar.js';
 import { SoundDialog } from '../ui/SoundDialog.js';
 
@@ -18,10 +20,14 @@ export class GardenScene extends Phaser.Scene {
   }
 
   create() {
-    // Graphics
+    // Graphics — layered: sand → moss → border → sprites
     this.gardenMask = new GardenMask();
     this.sandCanvas = new SandCanvas(this, this.gardenMask);
     this.sandCanvas.create();
+
+    this.mossCanvas = new MossCanvas(this, this.gardenMask);
+    this.mossCanvas.create();
+
     drawBorder(this);
 
     // Audio
@@ -33,6 +39,7 @@ export class GardenScene extends Phaser.Scene {
       ROCK: new RockTool(this, this.gardenMask, this.audio),
       SHRUB: new ShrubTool(this, this.gardenMask, this.audio),
       TEAHOUSE: new TeahouseTool(this, this.gardenMask, this.audio),
+      MOSS: new MossTool(this.mossCanvas, this.gardenMask),
     };
 
     // UI
@@ -43,6 +50,8 @@ export class GardenScene extends Phaser.Scene {
     this.toolbar = new Toolbar(this, (name) => this.handleToolSelect(name));
     this.toolbar.create();
     this.toolbar.updateSoundButton(this.audio.anyLayerEnabled);
+    // Show the initial brush size label on the MOSS button
+    this.toolbar.updateToolLabel('MOSS', this.tools.MOSS.label);
 
     // Input
     this.setupInput();
@@ -58,11 +67,21 @@ export class GardenScene extends Phaser.Scene {
       this.soundDialog.open();
       return;
     }
+    // Clicking the MOSS button while already active cycles the brush size
+    if (name === 'MOSS' && this.activeTool === 'MOSS') {
+      this.tools.MOSS.cycleBrush();
+    }
     this.activeTool = name;
     this.toolbar.setActiveTool(name);
+    if (name === 'MOSS') {
+      this.toolbar.updateToolLabel('MOSS', this.tools.MOSS.label);
+    }
   }
 
   setupInput() {
+    // Disable browser context menu so right-click can erase moss
+    if (this.input.mouse) this.input.mouse.disableContextMenu();
+
     this.input.on('pointerdown', (pointer) => {
       this.audio.ensureStarted();
       if (pointer.y >= SAND_H) return;
@@ -82,8 +101,7 @@ export class GardenScene extends Phaser.Scene {
   }
 
   update() {
-    if (this.sandCanvas.dirty) {
-      this.sandCanvas.sync();
-    }
+    if (this.sandCanvas.dirty) this.sandCanvas.sync();
+    if (this.mossCanvas.dirty) this.mossCanvas.sync();
   }
 }
