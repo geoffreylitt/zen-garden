@@ -9,6 +9,11 @@ export const GROOVE_COLOR = [0xb0, 0xa0, 0x78];
 export const RIDGE_COLOR = [0xe8, 0xdc, 0xbc];
 export const BG_COLOR = [0x3a, 0x3a, 0x36];
 
+// Water stream colors
+export const WATER_DEEP      = [0x2a, 0x6a, 0xa8]; // deep channel
+export const WATER_SHALLOW   = [0x5a, 0x9a, 0xcc]; // mid band
+export const WATER_HIGHLIGHT = [0x96, 0xc4, 0xe4]; // edge ripple
+
 // Rake config
 export const TINE_COUNT = 5;
 export const TINE_SPACING = 3;
