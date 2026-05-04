@@ -74,3 +74,7 @@ The codebase is modularized so that different types of changes can be made in pa
 ### Shared constants
 
 All dimensions (canvas size, toolbar height), colors (sand, groove, ridge), and tuning values (rake tine count, chime frequencies) live in `src/constants.js`.
+
+## Philosophy
+
+Why did the monk rake the zen garden every day? Because inner peace doesn't `npm install` itself.
