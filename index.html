@@ -3,10 +3,16 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Zen Garden</title>
+  <title>Disco Garden 🪩</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background: #1a1a1a; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+    body {
+      background: #050510;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
     canvas { image-rendering: pixelated; }
 
     #sound-settings-overlay {
@@ -15,7 +21,7 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0, 0, 0, 0.45);
+      background: rgba(0, 0, 10, 0.75);
       display: none;
       justify-content: center;
       align-items: center;
@@ -23,14 +29,14 @@
     }
 
     #sound-settings-dialog {
-      background: #4a3728;
-      border: 2px solid #6b5340;
+      background: #0d0d22;
+      border: 2px solid #ff00ff;
       border-radius: 8px;
       padding: 16px 20px;
       min-width: 300px;
-      color: #e8dcbc;
+      color: #dd88ff;
       font-family: monospace;
-      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 0 32px rgba(255, 0, 255, 0.4), 0 4px 24px rgba(0, 0, 0, 0.8);
     }
 
     .sound-dialog-title {
@@ -39,16 +45,18 @@
       align-items: center;
       margin-bottom: 16px;
       padding-bottom: 10px;
-      border-bottom: 1px solid #6b5340;
+      border-bottom: 1px solid #440044;
       font-size: 14px;
       font-weight: bold;
-      letter-spacing: 0.5px;
+      letter-spacing: 1px;
+      color: #ff44ff;
+      text-shadow: 0 0 8px #ff00ff;
     }
 
     .sound-dialog-close {
       background: none;
       border: none;
-      color: #c8b898;
+      color: #ff44ff;
       font-size: 22px;
       cursor: pointer;
       padding: 0 2px;
@@ -57,6 +65,7 @@
 
     .sound-dialog-close:hover {
       color: #fff;
+      text-shadow: 0 0 6px #fff;
     }
 
     .sound-layer-row {
@@ -71,14 +80,15 @@
     }
 
     .sound-layer-row label {
-      flex: 0 0 70px;
+      flex: 0 0 110px;
       font-size: 12px;
       cursor: pointer;
       user-select: none;
+      color: #cc88ff;
     }
 
     .sound-layer-row input[type="checkbox"] {
-      accent-color: #8a9a6a;
+      accent-color: #ff00ff;
       width: 16px;
       height: 16px;
       cursor: pointer;
@@ -90,7 +100,7 @@
       -webkit-appearance: none;
       appearance: none;
       height: 4px;
-      background: #6b5340;
+      background: #330033;
       border-radius: 2px;
       outline: none;
       cursor: pointer;
@@ -101,27 +111,25 @@
       appearance: none;
       width: 14px;
       height: 14px;
-      background: #c8b898;
+      background: #ff00ff;
       border-radius: 50%;
       cursor: pointer;
-      transition: background 0.15s;
+      box-shadow: 0 0 6px #ff00ff;
     }
 
     .sound-slider::-webkit-slider-thumb:hover {
-      background: #e8dcbc;
+      background: #ffffff;
+      box-shadow: 0 0 10px #ff88ff;
     }
 
     .sound-slider::-moz-range-thumb {
       width: 14px;
       height: 14px;
-      background: #c8b898;
+      background: #ff00ff;
       border-radius: 50%;
       cursor: pointer;
       border: none;
-    }
-
-    .sound-slider::-moz-range-thumb:hover {
-      background: #e8dcbc;
+      box-shadow: 0 0 6px #ff00ff;
     }
   </style>
 </head>
