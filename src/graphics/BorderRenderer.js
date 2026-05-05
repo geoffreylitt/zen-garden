@@ -1,4 +1,4 @@
-import { W, SAND_H } from '../constants.js';
+import { W, SAND_H, DISCO_COLORS } from '../constants.js';
 
 export function drawBorder(scene) {
   const gfx = scene.add.graphics();
@@ -24,7 +24,22 @@ export function drawBorder(scene) {
     });
   }
 
-  gfx.lineStyle(5, 0x888880, 1);
+  // Draw neon border segments cycling through disco colors
+  const segLen = Math.floor(steps / DISCO_COLORS.length);
+  for (let c = 0; c < DISCO_COLORS.length; c++) {
+    const start = c * segLen;
+    const end = (c === DISCO_COLORS.length - 1) ? steps : (c + 1) * segLen;
+    gfx.lineStyle(4, DISCO_COLORS[c], 0.9);
+    gfx.beginPath();
+    gfx.moveTo(points[start].x, points[start].y);
+    for (let i = start + 1; i < end; i++) {
+      gfx.lineTo(points[i].x, points[i].y);
+    }
+    gfx.strokePath();
+  }
+
+  // Outer glow ring
+  gfx.lineStyle(2, 0xffffff, 0.2);
   gfx.beginPath();
   gfx.moveTo(points[0].x, points[0].y);
   for (let i = 1; i < points.length; i++) {
@@ -33,15 +48,15 @@ export function drawBorder(scene) {
   gfx.closePath();
   gfx.strokePath();
 
-  for (let i = 0; i < points.length; i++) {
-    if (Math.random() < 0.4) {
+  // Neon studs along border
+  for (let i = 0; i < points.length; i += 5) {
+    if (Math.random() < 0.6) {
       const p = points[i];
-      const ox = (Math.random() - 0.5) * 6;
-      const oy = (Math.random() - 0.5) * 6;
-      const green = 0x40 + Math.floor(Math.random() * 0x30);
-      const color = (0x20 << 16) | (green << 8) | 0x10;
-      gfx.fillStyle(color, 0.8);
-      gfx.fillCircle(p.x + ox, p.y + oy, 1 + Math.random() * 1.5);
+      const color = DISCO_COLORS[Math.floor(Math.random() * DISCO_COLORS.length)];
+      gfx.fillStyle(color, 0.9);
+      gfx.fillCircle(p.x, p.y, 1.5 + Math.random() * 1.5);
     }
   }
+
+  return gfx;
 }

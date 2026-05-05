@@ -3,6 +3,8 @@ import { SAND_H } from '../constants.js';
 import { GardenMask } from '../graphics/GardenMask.js';
 import { SandCanvas } from '../graphics/SandCanvas.js';
 import { drawBorder } from '../graphics/BorderRenderer.js';
+import { DiscoLights } from '../graphics/DiscoLights.js';
+import { DiscoBall } from '../graphics/DiscoBall.js';
 import { AudioManager } from '../audio/AudioManager.js';
 import { RakeTool } from '../tools/RakeTool.js';
 import { RockTool } from '../tools/RockTool.js';
@@ -15,6 +17,7 @@ export class GardenScene extends Phaser.Scene {
   constructor() {
     super('GardenScene');
     this.activeTool = 'RAKE';
+    this._floorFlashTimer = 0;
   }
 
   create() {
@@ -23,6 +26,14 @@ export class GardenScene extends Phaser.Scene {
     this.sandCanvas = new SandCanvas(this, this.gardenMask);
     this.sandCanvas.create();
     drawBorder(this);
+
+    // Disco lights overlay
+    this.discoLights = new DiscoLights(this);
+    this.discoLights.create();
+
+    // Disco ball
+    this.discoBall = new DiscoBall(this);
+    this.discoBall.create();
 
     // Audio
     this.audio = new AudioManager();
@@ -81,9 +92,24 @@ export class GardenScene extends Phaser.Scene {
     });
   }
 
-  update() {
+  update(time, delta) {
+    const beatPhase = this.audio.getBeatPhase();
+
+    // Flash dance floor tiles on beat
+    this._floorFlashTimer += delta;
+    if (this._floorFlashTimer > 80) {
+      this._floorFlashTimer = 0;
+      this.sandCanvas.flashTiles(beatPhase);
+    }
+
     if (this.sandCanvas.dirty) {
       this.sandCanvas.sync();
     }
+
+    // Update disco lights
+    this.discoLights.update(delta, beatPhase);
+
+    // Rotate disco ball
+    this.discoBall.update(delta);
   }
 }

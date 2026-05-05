@@ -1,6 +1,7 @@
 import { WindLayer } from './WindLayer.js';
 import { ChimesLayer } from './ChimesLayer.js';
 import { CicadasLayer } from './CicadasLayer.js';
+import { BeatLayer } from './BeatLayer.js';
 import { RakeSound } from './RakeSound.js';
 import { PlaceSound } from './PlaceSound.js';
 
@@ -9,6 +10,7 @@ export class AudioManager {
     this.started = false;
     this.ctx = null;
     this.layers = {
+      beat: new BeatLayer(),
       wind: new WindLayer(),
       chimes: new ChimesLayer(),
       cicadas: new CicadasLayer(),
@@ -39,6 +41,12 @@ export class AudioManager {
 
   get anyLayerEnabled() {
     return Object.values(this.layers).some(l => l.enabled);
+  }
+
+  getBeatPhase() {
+    const beat = this.layers.beat;
+    if (!beat || !this.ctx) return 0;
+    return beat.getBeatPhase();
   }
 
   startRake() {

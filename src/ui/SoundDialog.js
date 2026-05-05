@@ -24,7 +24,7 @@ export class SoundDialog {
     const titleBar = document.createElement('div');
     titleBar.className = 'sound-dialog-title';
     const title = document.createElement('span');
-    title.textContent = 'Sound Settings';
+    title.textContent = '🎵 Sound Settings';
     const closeBtn = document.createElement('button');
     closeBtn.className = 'sound-dialog-close';
     closeBtn.textContent = '\u00d7';
@@ -34,9 +34,10 @@ export class SoundDialog {
     dialog.appendChild(titleBar);
 
     const layerDefs = [
-      { key: 'wind', label: 'Wind' },
-      { key: 'chimes', label: 'Chimes' },
-      { key: 'cicadas', label: 'Cicadas' },
+      { key: 'beat',    label: '🥁 Disco Beat' },
+      { key: 'wind',    label: '🌬️ Wind' },
+      { key: 'chimes',  label: '🎐 Chimes' },
+      { key: 'cicadas', label: '🦗 Cicadas' },
     ];
 
     layerDefs.forEach(({ key, label }) => {
