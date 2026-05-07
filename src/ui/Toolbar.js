@@ -1,6 +1,6 @@
 import { W, SAND_H, TOOLBAR_H } from '../constants.js';
 
-const TOOL_NAMES = ['RAKE', 'ROCK', 'SHRUB', 'TEAHOUSE', 'CLEAR', 'SOUND'];
+const TOOL_NAMES = ['RAKE', 'ROCK', 'SHRUB', 'TEAHOUSE', 'POND', 'CLEAR', 'SOUND'];
 
 export class Toolbar {
   constructor(scene, onSelectTool) {
@@ -23,7 +23,9 @@ export class Toolbar {
       gfx.strokePath();
     }
 
-    const btnW = 70;
+    const maxBtnW = 70;
+    const minGap = 3;
+    const btnW = Math.min(maxBtnW, Math.floor((W - (TOOL_NAMES.length + 1) * minGap) / TOOL_NAMES.length));
     const gap = (W - TOOL_NAMES.length * btnW) / (TOOL_NAMES.length + 1);
 
     TOOL_NAMES.forEach((name, idx) => {
@@ -37,7 +39,7 @@ export class Toolbar {
 
       const label = this.scene.add.text(bx + btnW / 2, by + bh / 2, name, {
         fontFamily: 'monospace',
-        fontSize: '10px',
+        fontSize: '9px',
         color: isActive ? '#4a3728' : '#c8b898',
         fontStyle: 'bold',
       });
