@@ -5,6 +5,7 @@ import { SandCanvas } from '../graphics/SandCanvas.js';
 import { drawBorder } from '../graphics/BorderRenderer.js';
 import { AudioManager } from '../audio/AudioManager.js';
 import { RakeTool } from '../tools/RakeTool.js';
+import { TinyRakeTool } from '../tools/TinyRakeTool.js';
 import { RockTool } from '../tools/RockTool.js';
 import { ShrubTool } from '../tools/ShrubTool.js';
 import { TeahouseTool } from '../tools/TeahouseTool.js';
@@ -30,6 +31,7 @@ export class GardenScene extends Phaser.Scene {
     // Tools
     this.tools = {
       RAKE: new RakeTool(this.sandCanvas, this.gardenMask, this.audio),
+      TINY: new TinyRakeTool(this.sandCanvas, this.gardenMask, this.audio),
       ROCK: new RockTool(this, this.gardenMask, this.audio),
       SHRUB: new ShrubTool(this, this.gardenMask, this.audio),
       TEAHOUSE: new TeahouseTool(this, this.gardenMask, this.audio),
