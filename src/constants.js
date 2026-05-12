@@ -1,3 +1,4 @@
+// Canvas dimensions
 export const W = 480;
 export const H = 360;
 export const TOOLBAR_H = 30;
