@@ -2,6 +2,11 @@
 
 A meditative pixel-art zen garden built with Phaser 3. Rake sand patterns, place rocks, shrubs, and teahouses, and enjoy ambient soundscapes.
 
+## Tech Stack
+
+- **[Phaser 3](https://phaser.io/)** — game framework
+- **[Vite](https://vitejs.dev/)** — dev server & bundler
+
 ## Getting Started
 
 ```bash
