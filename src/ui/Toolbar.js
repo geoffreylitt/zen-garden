@@ -1,6 +1,6 @@
 import { W, SAND_H, TOOLBAR_H } from '../constants.js';
 
-const TOOL_NAMES = ['RAKE', 'ROCK', 'SHRUB', 'TEAHOUSE', 'CLEAR', 'SOUND'];
+const TOOL_NAMES = ['RAKE', 'ROCK', 'SHRUB', 'TEAHOUSE', 'CLEAR', 'AMBI', 'SOUND'];
 
 export class Toolbar {
   constructor(scene, onSelectTool) {
@@ -23,7 +23,7 @@ export class Toolbar {
       gfx.strokePath();
     }
 
-    const btnW = 70;
+    const btnW = 58;
     const gap = (W - TOOL_NAMES.length * btnW) / (TOOL_NAMES.length + 1);
 
     TOOL_NAMES.forEach((name, idx) => {
@@ -61,7 +61,7 @@ export class Toolbar {
   setActiveTool(name) {
     this.activeTool = name;
     this.buttons.forEach((btn) => {
-      if (btn.name === 'SOUND') return;
+      if (btn.name === 'SOUND' || btn.name === 'AMBI') return;
       const isActive = btn.name === this.activeTool;
       this.drawButton(btn.bg, btn.bx, btn.by, btn.btnW, btn.bh, isActive);
       btn.label.setColor(isActive ? '#4a3728' : '#c8b898');
@@ -77,5 +77,18 @@ export class Toolbar {
       soundBtn.bx, soundBtn.by, soundBtn.btnW, soundBtn.bh, 3
     );
     soundBtn.label.setColor(anyEnabled ? '#e8dcbc' : '#886655');
+  }
+
+  // muted=true → button dims to signal audio is silenced
+  // muted=false → button glows green to signal ambient is playing
+  updateAmbiButton(muted) {
+    const ambiBtn = this.buttons.find(b => b.name === 'AMBI');
+    if (!ambiBtn) return;
+    ambiBtn.bg.clear();
+    ambiBtn.bg.fillStyle(muted ? 0x5c4433 : 0x607860, 1);
+    ambiBtn.bg.fillRoundedRect(
+      ambiBtn.bx, ambiBtn.by, ambiBtn.btnW, ambiBtn.bh, 3
+    );
+    ambiBtn.label.setColor(muted ? '#886655' : '#e8dcbc');
   }
 }

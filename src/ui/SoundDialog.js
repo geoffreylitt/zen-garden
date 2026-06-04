@@ -37,6 +37,7 @@ export class SoundDialog {
       { key: 'wind', label: 'Wind' },
       { key: 'chimes', label: 'Chimes' },
       { key: 'cicadas', label: 'Cicadas' },
+      { key: 'birds', label: 'Birds' },
     ];
 
     layerDefs.forEach(({ key, label }) => {

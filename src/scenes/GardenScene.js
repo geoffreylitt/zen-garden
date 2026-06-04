@@ -43,6 +43,7 @@ export class GardenScene extends Phaser.Scene {
     this.toolbar = new Toolbar(this, (name) => this.handleToolSelect(name));
     this.toolbar.create();
     this.toolbar.updateSoundButton(this.audio.anyLayerEnabled);
+    this.toolbar.updateAmbiButton(this.audio.ambientMuted);
 
     // Input
     this.setupInput();
@@ -51,6 +52,13 @@ export class GardenScene extends Phaser.Scene {
   handleToolSelect(name) {
     if (name === 'CLEAR') {
       this.sandCanvas.clear();
+      return;
+    }
+    if (name === 'AMBI') {
+      this.audio.ensureStarted();
+      const nowMuted = !this.audio.ambientMuted;
+      this.audio.setAmbientMuted(nowMuted);
+      this.toolbar.updateAmbiButton(nowMuted);
       return;
     }
     if (name === 'SOUND') {
