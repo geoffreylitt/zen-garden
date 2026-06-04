@@ -123,6 +123,89 @@
     .sound-slider::-moz-range-thumb:hover {
       background: #e8dcbc;
     }
+
+    /* Pattern dialog */
+    #pattern-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.45);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+
+    #pattern-dialog {
+      background: #4a3728;
+      border: 2px solid #6b5340;
+      border-radius: 8px;
+      padding: 16px 20px;
+      min-width: 280px;
+      color: #e8dcbc;
+      font-family: monospace;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+    }
+
+    .pattern-dialog-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #6b5340;
+      font-size: 14px;
+      font-weight: bold;
+      letter-spacing: 0.5px;
+    }
+
+    .pattern-subtitle {
+      font-size: 11px;
+      color: #a09070;
+      margin-bottom: 14px;
+    }
+
+    .pattern-btn {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      background: #5c4433;
+      border: 1px solid #7a5c42;
+      border-radius: 5px;
+      color: #e8dcbc;
+      font-family: monospace;
+      padding: 10px 14px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      text-align: left;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    .pattern-btn:last-child {
+      margin-bottom: 0;
+    }
+
+    .pattern-btn:hover {
+      background: #7a5c42;
+      border-color: #a07850;
+    }
+
+    .pattern-btn:active {
+      background: #8a6a50;
+    }
+
+    .pattern-btn-name {
+      font-size: 13px;
+      font-weight: bold;
+      margin-bottom: 3px;
+    }
+
+    .pattern-btn-desc {
+      font-size: 10px;
+      color: #a09070;
+    }
   </style>
 </head>
 <body>
