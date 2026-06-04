@@ -1,18 +1,23 @@
 import { SAND_H, TINE_COUNT, TINE_SPACING, GROOVE_COLOR, RIDGE_COLOR } from '../constants.js';
 
 export class RakeTool {
-  constructor(sandCanvas, gardenMask, audioManager) {
+  constructor(sandCanvas, gardenMask, audioManager, history) {
     this.sandCanvas = sandCanvas;
     this.gardenMask = gardenMask;
     this.audio = audioManager;
+    this.history = history;
     this.dragging = false;
     this.lastPointer = null;
+    this._pendingSnapshot = null;
+    this._stroked = false;
   }
 
   onDown(pointer) {
     if (pointer.y >= SAND_H) return;
     this.dragging = true;
     this.lastPointer = { x: pointer.x, y: pointer.y };
+    this._pendingSnapshot = this.sandCanvas.snapshot();
+    this._stroked = false;
     this.audio.startRake();
   }
 
@@ -21,9 +26,15 @@ export class RakeTool {
     if (pointer.y >= SAND_H) return;
     this.rakeStroke(this.lastPointer, { x: pointer.x, y: pointer.y });
     this.lastPointer = { x: pointer.x, y: pointer.y };
+    this._stroked = true;
   }
 
   onUp() {
+    if (this._stroked && this._pendingSnapshot) {
+      this.history.pushSand(this._pendingSnapshot);
+    }
+    this._pendingSnapshot = null;
+    this._stroked = false;
     this.dragging = false;
     this.lastPointer = null;
     this.audio.stopRake();

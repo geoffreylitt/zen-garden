@@ -10,6 +10,7 @@ import { ShrubTool } from '../tools/ShrubTool.js';
 import { TeahouseTool } from '../tools/TeahouseTool.js';
 import { Toolbar } from '../ui/Toolbar.js';
 import { SoundDialog } from '../ui/SoundDialog.js';
+import { HistoryManager } from '../history/HistoryManager.js';
 
 export class GardenScene extends Phaser.Scene {
   constructor() {
@@ -27,12 +28,15 @@ export class GardenScene extends Phaser.Scene {
     // Audio
     this.audio = new AudioManager();
 
+    // History
+    this.history = new HistoryManager();
+
     // Tools
     this.tools = {
-      RAKE: new RakeTool(this.sandCanvas, this.gardenMask, this.audio),
-      ROCK: new RockTool(this, this.gardenMask, this.audio),
-      SHRUB: new ShrubTool(this, this.gardenMask, this.audio),
-      TEAHOUSE: new TeahouseTool(this, this.gardenMask, this.audio),
+      RAKE: new RakeTool(this.sandCanvas, this.gardenMask, this.audio, this.history),
+      ROCK: new RockTool(this, this.gardenMask, this.audio, this.history),
+      SHRUB: new ShrubTool(this, this.gardenMask, this.audio, this.history),
+      TEAHOUSE: new TeahouseTool(this, this.gardenMask, this.audio, this.history),
     };
 
     // UI
@@ -49,6 +53,10 @@ export class GardenScene extends Phaser.Scene {
   }
 
   handleToolSelect(name) {
+    if (name === 'UNDO') {
+      this.history.undo(this.sandCanvas);
+      return;
+    }
     if (name === 'CLEAR') {
       this.sandCanvas.clear();
       return;
@@ -78,6 +86,14 @@ export class GardenScene extends Phaser.Scene {
     this.input.on('pointerup', () => {
       const tool = this.tools[this.activeTool];
       if (tool && tool.onUp) tool.onUp();
+    });
+
+    // Ctrl+Z / Cmd+Z keyboard shortcut for undo
+    this.input.keyboard.on('keydown', (event) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === 'z') {
+        event.preventDefault();
+        this.history.undo(this.sandCanvas);
+      }
     });
   }
 
