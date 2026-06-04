@@ -3,6 +3,7 @@ import { SAND_H } from '../constants.js';
 import { GardenMask } from '../graphics/GardenMask.js';
 import { SandCanvas } from '../graphics/SandCanvas.js';
 import { drawBorder } from '../graphics/BorderRenderer.js';
+import { PetalLayer } from '../graphics/PetalLayer.js';
 import { AudioManager } from '../audio/AudioManager.js';
 import { RakeTool } from '../tools/RakeTool.js';
 import { RockTool } from '../tools/RockTool.js';
@@ -23,6 +24,8 @@ export class GardenScene extends Phaser.Scene {
     this.sandCanvas = new SandCanvas(this, this.gardenMask);
     this.sandCanvas.create();
     drawBorder(this);
+    this.petalLayer = new PetalLayer(this);
+    this.petalLayer.create();
 
     // Audio
     this.audio = new AudioManager();
@@ -81,9 +84,10 @@ export class GardenScene extends Phaser.Scene {
     });
   }
 
-  update() {
+  update(time, delta) {
     if (this.sandCanvas.dirty) {
       this.sandCanvas.sync();
     }
+    this.petalLayer.update(time, delta);
   }
 }
