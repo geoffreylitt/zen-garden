@@ -1,6 +1,7 @@
 import { W, SAND_H, TOOLBAR_H } from '../constants.js';
 
-const TOOL_NAMES = ['RAKE', 'ROCK', 'SHRUB', 'TEAHOUSE', 'CLEAR', 'SOUND'];
+const TOOL_NAMES = ['RAKE', 'ROCK', 'SHRUB', 'TEAHOUSE', 'UNDO', 'CLEAR', 'SOUND'];
+const ACTION_BUTTONS = new Set(['UNDO', 'CLEAR', 'SOUND']);
 
 export class Toolbar {
   constructor(scene, onSelectTool) {
@@ -23,7 +24,7 @@ export class Toolbar {
       gfx.strokePath();
     }
 
-    const btnW = 70;
+    const btnW = 60;
     const gap = (W - TOOL_NAMES.length * btnW) / (TOOL_NAMES.length + 1);
 
     TOOL_NAMES.forEach((name, idx) => {
@@ -32,7 +33,7 @@ export class Toolbar {
       const bh = TOOLBAR_H - 8;
 
       const bg = this.scene.add.graphics();
-      const isActive = name === this.activeTool;
+      const isActive = !ACTION_BUTTONS.has(name) && name === this.activeTool;
       this.drawButton(bg, bx, by, btnW, bh, isActive);
 
       const label = this.scene.add.text(bx + btnW / 2, by + bh / 2, name, {
@@ -61,7 +62,7 @@ export class Toolbar {
   setActiveTool(name) {
     this.activeTool = name;
     this.buttons.forEach((btn) => {
-      if (btn.name === 'SOUND') return;
+      if (ACTION_BUTTONS.has(btn.name)) return;
       const isActive = btn.name === this.activeTool;
       this.drawButton(btn.bg, btn.bx, btn.by, btn.btnW, btn.bh, isActive);
       btn.label.setColor(isActive ? '#4a3728' : '#c8b898');

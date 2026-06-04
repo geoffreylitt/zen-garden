@@ -2,10 +2,11 @@ import { SAND_H } from '../constants.js';
 import { createTeahouseTexture } from '../graphics/sprites/TeahouseSprite.js';
 
 export class TeahouseTool {
-  constructor(scene, gardenMask, audioManager) {
+  constructor(scene, gardenMask, audioManager, history) {
     this.scene = scene;
     this.gardenMask = gardenMask;
     this.audio = audioManager;
+    this.history = history;
   }
 
   onDown(pointer) {
@@ -26,6 +27,7 @@ export class TeahouseTool {
       }
     });
 
+    this.history.pushSprite(sprite);
     this.audio.playPlace();
   }
 }

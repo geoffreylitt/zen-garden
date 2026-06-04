@@ -55,6 +55,15 @@ export class SandCanvas {
     this.dirty = false;
   }
 
+  snapshot() {
+    return this.pixels.slice();
+  }
+
+  restore(pixels) {
+    this.pixels.set(pixels);
+    this.sync();
+  }
+
   clear() {
     this.fill();
     this.sync();
