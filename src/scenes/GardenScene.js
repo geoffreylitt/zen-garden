@@ -10,6 +10,8 @@ import { ShrubTool } from '../tools/ShrubTool.js';
 import { TeahouseTool } from '../tools/TeahouseTool.js';
 import { Toolbar } from '../ui/Toolbar.js';
 import { SoundDialog } from '../ui/SoundDialog.js';
+import { PatternStampTool } from '../tools/PatternStampTool.js';
+import { PatternDialog } from '../ui/PatternDialog.js';
 
 export class GardenScene extends Phaser.Scene {
   constructor() {
@@ -35,6 +37,10 @@ export class GardenScene extends Phaser.Scene {
       TEAHOUSE: new TeahouseTool(this, this.gardenMask, this.audio),
     };
 
+    // Pattern stamps
+    this.patternStampTool = new PatternStampTool(this.sandCanvas, this.gardenMask);
+    this.patternDialog = new PatternDialog(this.patternStampTool);
+
     // UI
     this.soundDialog = new SoundDialog(this.audio, () => {
       this.toolbar.updateSoundButton(this.audio.anyLayerEnabled);
@@ -56,6 +62,10 @@ export class GardenScene extends Phaser.Scene {
     if (name === 'SOUND') {
       this.audio.ensureStarted();
       this.soundDialog.open();
+      return;
+    }
+    if (name === 'PATTERN') {
+      this.patternDialog.open();
       return;
     }
     this.activeTool = name;
