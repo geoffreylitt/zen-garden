@@ -10,6 +10,8 @@ import { ShrubTool } from '../tools/ShrubTool.js';
 import { TeahouseTool } from '../tools/TeahouseTool.js';
 import { Toolbar } from '../ui/Toolbar.js';
 import { SoundDialog } from '../ui/SoundDialog.js';
+import { ChallengeManager } from '../challenges/ChallengeManager.js';
+import { ChallengePanel } from '../ui/ChallengePanel.js';
 
 export class GardenScene extends Phaser.Scene {
   constructor() {
@@ -34,6 +36,11 @@ export class GardenScene extends Phaser.Scene {
       SHRUB: new ShrubTool(this, this.gardenMask, this.audio),
       TEAHOUSE: new TeahouseTool(this, this.gardenMask, this.audio),
     };
+
+    // Challenges
+    this.challenges = new ChallengeManager();
+    this.challengePanel = new ChallengePanel(this.challenges);
+    this.tools.RAKE.onRake = (dist) => this.challenges.addRakeDistance(dist);
 
     // UI
     this.soundDialog = new SoundDialog(this.audio, () => {
@@ -67,7 +74,17 @@ export class GardenScene extends Phaser.Scene {
       this.audio.ensureStarted();
       if (pointer.y >= SAND_H) return;
       const tool = this.tools[this.activeTool];
-      if (tool && tool.onDown) tool.onDown(pointer);
+      if (tool && tool.onDown) {
+        tool.onDown(pointer);
+        // Track placement actions for daily challenge
+        const gx = Math.floor(pointer.x);
+        const gy = Math.floor(pointer.y);
+        if (this.gardenMask.isInGarden(gx, gy)) {
+          if (this.activeTool === 'ROCK') this.challenges.addRock();
+          else if (this.activeTool === 'SHRUB') this.challenges.addShrub();
+          else if (this.activeTool === 'TEAHOUSE') this.challenges.addTeahouse();
+        }
+      }
     });
 
     this.input.on('pointermove', (pointer) => {
