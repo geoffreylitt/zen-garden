@@ -3,10 +3,12 @@ export class SoundDialog {
     this.audio = audioManager;
     this.onUpdate = onUpdate;
     this.el = null;
+    this.trackRows = [];
   }
 
   open() {
     if (!this.el) this.create();
+    this._refreshTrackSelection();
     this.el.style.display = 'flex';
   }
 
@@ -21,6 +23,7 @@ export class SoundDialog {
     const dialog = document.createElement('div');
     dialog.id = 'sound-settings-dialog';
 
+    // Title bar
     const titleBar = document.createElement('div');
     titleBar.className = 'sound-dialog-title';
     const title = document.createElement('span');
@@ -32,6 +35,58 @@ export class SoundDialog {
     titleBar.appendChild(title);
     titleBar.appendChild(closeBtn);
     dialog.appendChild(titleBar);
+
+    // Music section
+    const musicLabel = document.createElement('div');
+    musicLabel.className = 'sound-section-label';
+    musicLabel.textContent = 'Music';
+    dialog.appendChild(musicLabel);
+
+    const soundtrack = this.audio.soundtrack;
+    soundtrack.tracks.forEach(track => {
+      const row = document.createElement('div');
+      row.className = 'music-track-row';
+      row.dataset.trackId = track.id;
+
+      const dot = document.createElement('span');
+      dot.className = 'music-track-dot';
+
+      const info = document.createElement('span');
+      info.className = 'music-track-info';
+
+      const name = document.createElement('span');
+      name.className = 'music-track-name';
+      name.textContent = track.name;
+
+      const vibe = document.createElement('span');
+      vibe.className = 'music-track-vibe';
+      vibe.textContent = track.vibe;
+
+      info.appendChild(name);
+      info.appendChild(vibe);
+      row.appendChild(dot);
+      row.appendChild(info);
+      dialog.appendChild(row);
+
+      row.addEventListener('click', () => {
+        this.audio.ensureStarted();
+        soundtrack.switchTo(track.id);
+        this._refreshTrackSelection();
+      });
+
+      this.trackRows.push(row);
+    });
+
+    // Divider
+    const divider = document.createElement('div');
+    divider.className = 'sound-section-divider';
+    dialog.appendChild(divider);
+
+    // Ambient layers section
+    const ambientLabel = document.createElement('div');
+    ambientLabel.className = 'sound-section-label';
+    ambientLabel.textContent = 'Ambient';
+    dialog.appendChild(ambientLabel);
 
     const layerDefs = [
       { key: 'wind', label: 'Wind' },
@@ -83,5 +138,13 @@ export class SoundDialog {
 
     document.body.appendChild(overlay);
     this.el = overlay;
+  }
+
+  _refreshTrackSelection() {
+    const currentId = this.audio.soundtrack.currentTrackId;
+    this.trackRows.forEach(row => {
+      const active = row.dataset.trackId === currentId;
+      row.classList.toggle('active', active);
+    });
   }
 }

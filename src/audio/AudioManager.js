@@ -3,6 +3,7 @@ import { ChimesLayer } from './ChimesLayer.js';
 import { CicadasLayer } from './CicadasLayer.js';
 import { RakeSound } from './RakeSound.js';
 import { PlaceSound } from './PlaceSound.js';
+import { SoundtrackManager } from './SoundtrackManager.js';
 
 export class AudioManager {
   constructor() {
@@ -13,6 +14,7 @@ export class AudioManager {
       chimes: new ChimesLayer(),
       cicadas: new CicadasLayer(),
     };
+    this.soundtrack = new SoundtrackManager();
     this.rakeSound = new RakeSound();
     this.placeSound = new PlaceSound();
   }
@@ -26,6 +28,7 @@ export class AudioManager {
       for (const layer of Object.values(this.layers)) {
         layer.setup(this.ctx);
       }
+      this.soundtrack.setup(this.ctx);
       this.rakeSound.setup(this.ctx);
     } catch (e) {
       // Web Audio not available

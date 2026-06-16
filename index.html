@@ -123,6 +123,72 @@
     .sound-slider::-moz-range-thumb:hover {
       background: #e8dcbc;
     }
+
+    .sound-section-label {
+      font-size: 10px;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: #8a7a5a;
+      margin-bottom: 8px;
+    }
+
+    .sound-section-divider {
+      border: none;
+      border-top: 1px solid #6b5340;
+      margin: 12px 0;
+    }
+
+    .music-track-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 8px;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-bottom: 4px;
+      transition: background 0.12s;
+    }
+
+    .music-track-row:hover {
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .music-track-row.active {
+      background: rgba(138, 154, 106, 0.2);
+    }
+
+    .music-track-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      border: 2px solid #8a9a6a;
+      flex-shrink: 0;
+      transition: background 0.12s;
+    }
+
+    .music-track-row.active .music-track-dot {
+      background: #8a9a6a;
+    }
+
+    .music-track-info {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    .music-track-name {
+      font-size: 12px;
+      color: #e8dcbc;
+    }
+
+    .music-track-row.active .music-track-name {
+      color: #fff;
+    }
+
+    .music-track-vibe {
+      font-size: 10px;
+      color: #8a7a5a;
+    }
   </style>
 </head>
 <body>
