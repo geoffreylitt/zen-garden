@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { SAND_H } from '../constants.js';
+import { SAND_H, PALETTE_ORDER } from '../constants.js';
 import { GardenMask } from '../graphics/GardenMask.js';
 import { SandCanvas } from '../graphics/SandCanvas.js';
 import { drawBorder } from '../graphics/BorderRenderer.js';
@@ -15,6 +15,7 @@ export class GardenScene extends Phaser.Scene {
   constructor() {
     super('GardenScene');
     this.activeTool = 'RAKE';
+    this._paletteIndex = 0; // index into PALETTE_ORDER
   }
 
   create() {
@@ -43,6 +44,7 @@ export class GardenScene extends Phaser.Scene {
     this.toolbar = new Toolbar(this, (name) => this.handleToolSelect(name));
     this.toolbar.create();
     this.toolbar.updateSoundButton(this.audio.anyLayerEnabled);
+    this.toolbar.updateSandButton(PALETTE_ORDER[this._paletteIndex]);
 
     // Input
     this.setupInput();
@@ -56,6 +58,13 @@ export class GardenScene extends Phaser.Scene {
     if (name === 'SOUND') {
       this.audio.ensureStarted();
       this.soundDialog.open();
+      return;
+    }
+    if (name === 'SAND') {
+      this._paletteIndex = (this._paletteIndex + 1) % PALETTE_ORDER.length;
+      const paletteKey = PALETTE_ORDER[this._paletteIndex];
+      this.sandCanvas.setPalette(paletteKey);
+      this.toolbar.updateSandButton(paletteKey);
       return;
     }
     this.activeTool = name;
