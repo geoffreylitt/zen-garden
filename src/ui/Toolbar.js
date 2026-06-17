@@ -1,6 +1,6 @@
 import { W, SAND_H, TOOLBAR_H } from '../constants.js';
 
-const TOOL_NAMES = ['RAKE', 'ROCK', 'SHRUB', 'TEAHOUSE', 'CLEAR', 'SOUND'];
+const TOOL_NAMES = ['RAKE', 'ROCK', 'SHRUB', 'TEAHOUSE', 'KOI', 'CLEAR', 'SOUND'];
 
 export class Toolbar {
   constructor(scene, onSelectTool) {
@@ -23,7 +23,7 @@ export class Toolbar {
       gfx.strokePath();
     }
 
-    const btnW = 70;
+    const btnW = 60;
     const gap = (W - TOOL_NAMES.length * btnW) / (TOOL_NAMES.length + 1);
 
     TOOL_NAMES.forEach((name, idx) => {
@@ -61,7 +61,7 @@ export class Toolbar {
   setActiveTool(name) {
     this.activeTool = name;
     this.buttons.forEach((btn) => {
-      if (btn.name === 'SOUND') return;
+      if (btn.name === 'SOUND' || btn.name === 'KOI') return;
       const isActive = btn.name === this.activeTool;
       this.drawButton(btn.bg, btn.bx, btn.by, btn.btnW, btn.bh, isActive);
       btn.label.setColor(isActive ? '#4a3728' : '#c8b898');
@@ -77,5 +77,17 @@ export class Toolbar {
       soundBtn.bx, soundBtn.by, soundBtn.btnW, soundBtn.bh, 3
     );
     soundBtn.label.setColor(anyEnabled ? '#e8dcbc' : '#886655');
+  }
+
+  /** Update the KOI button to reflect how many fish are active (0–3). */
+  updateKoiButton(count, maxKoi = 3) {
+    const btn = this.buttons.find(b => b.name === 'KOI');
+    if (!btn) return;
+    const atMax = count >= maxKoi;
+    btn.bg.clear();
+    btn.bg.fillStyle(atMax ? 0x3a3530 : 0x5c6850, 1); // muted when full, teal-green when available
+    btn.bg.fillRoundedRect(btn.bx, btn.by, btn.btnW, btn.bh, 3);
+    btn.label.setText(count > 0 ? `KOI ${count}/${maxKoi}` : 'KOI');
+    btn.label.setColor(atMax ? '#665544' : '#c8e8b0');
   }
 }

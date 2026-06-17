@@ -17,6 +17,7 @@ export class ShrubTool {
     const key = createShrubTexture(this.scene);
     const sprite = this.scene.add.image(pointer.x, pointer.y, key);
     sprite.setScale(2);
+    sprite.setDepth(5);
     sprite.setInteractive({ draggable: true, useHandCursor: true });
     this.scene.input.setDraggable(sprite);
     sprite.on('drag', (_p, dragX, dragY) => {

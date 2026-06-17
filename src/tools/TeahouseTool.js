@@ -2,10 +2,11 @@ import { SAND_H } from '../constants.js';
 import { createTeahouseTexture } from '../graphics/sprites/TeahouseSprite.js';
 
 export class TeahouseTool {
-  constructor(scene, gardenMask, audioManager) {
+  constructor(scene, gardenMask, audioManager, onPlace = null) {
     this.scene = scene;
     this.gardenMask = gardenMask;
     this.audio = audioManager;
+    this.onPlace = onPlace;
   }
 
   onDown(pointer) {
@@ -17,6 +18,7 @@ export class TeahouseTool {
     const key = createTeahouseTexture(this.scene);
     const sprite = this.scene.add.image(pointer.x, pointer.y, key);
     sprite.setScale(2);
+    sprite.setDepth(5);
     sprite.setInteractive({ draggable: true, useHandCursor: true });
     this.scene.input.setDraggable(sprite);
     sprite.on('drag', (_p, dragX, dragY) => {
@@ -27,5 +29,6 @@ export class TeahouseTool {
     });
 
     this.audio.playPlace();
+    if (this.onPlace) this.onPlace(sprite, 26);
   }
 }

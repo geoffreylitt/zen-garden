@@ -8,6 +8,7 @@ import { RakeTool } from '../tools/RakeTool.js';
 import { RockTool } from '../tools/RockTool.js';
 import { ShrubTool } from '../tools/ShrubTool.js';
 import { TeahouseTool } from '../tools/TeahouseTool.js';
+import { KoiManager } from '../fish/KoiManager.js';
 import { Toolbar } from '../ui/Toolbar.js';
 import { SoundDialog } from '../ui/SoundDialog.js';
 
@@ -27,13 +28,24 @@ export class GardenScene extends Phaser.Scene {
     // Audio
     this.audio = new AudioManager();
 
+    // Shared obstacle list — populated by RockTool and TeahouseTool,
+    // read by KoiManager each frame so koi avoid placed objects.
+    this.obstacleSprites = [];
+
     // Tools
     this.tools = {
       RAKE: new RakeTool(this.sandCanvas, this.gardenMask, this.audio),
-      ROCK: new RockTool(this, this.gardenMask, this.audio),
+      ROCK: new RockTool(this, this.gardenMask, this.audio, (sprite, radius) => {
+        this.obstacleSprites.push({ sprite, radius });
+      }),
       SHRUB: new ShrubTool(this, this.gardenMask, this.audio),
-      TEAHOUSE: new TeahouseTool(this, this.gardenMask, this.audio),
+      TEAHOUSE: new TeahouseTool(this, this.gardenMask, this.audio, (sprite, radius) => {
+        this.obstacleSprites.push({ sprite, radius });
+      }),
     };
+
+    // Koi fish animation system
+    this.koiManager = new KoiManager(this, this.gardenMask, this.obstacleSprites);
 
     // UI
     this.soundDialog = new SoundDialog(this.audio, () => {
@@ -56,6 +68,13 @@ export class GardenScene extends Phaser.Scene {
     if (name === 'SOUND') {
       this.audio.ensureStarted();
       this.soundDialog.open();
+      return;
+    }
+    if (name === 'KOI') {
+      if (!this.koiManager.isFull) {
+        this.koiManager.addKoi();
+        this.toolbar.updateKoiButton(this.koiManager.count);
+      }
       return;
     }
     this.activeTool = name;
@@ -81,9 +100,10 @@ export class GardenScene extends Phaser.Scene {
     });
   }
 
-  update() {
+  update(time, delta) {
     if (this.sandCanvas.dirty) {
       this.sandCanvas.sync();
     }
+    this.koiManager.update(time, delta);
   }
 }
