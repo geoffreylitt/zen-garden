@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { SAND_H } from '../constants.js';
+import { SAND_H, DAY_THEME, NIGHT_THEME } from '../constants.js';
 import { GardenMask } from '../graphics/GardenMask.js';
 import { SandCanvas } from '../graphics/SandCanvas.js';
 import { drawBorder } from '../graphics/BorderRenderer.js';
@@ -15,6 +15,8 @@ export class GardenScene extends Phaser.Scene {
   constructor() {
     super('GardenScene');
     this.activeTool = 'RAKE';
+    this.isNight = false;
+    this.borderGfx = null;
   }
 
   create() {
@@ -22,7 +24,7 @@ export class GardenScene extends Phaser.Scene {
     this.gardenMask = new GardenMask();
     this.sandCanvas = new SandCanvas(this, this.gardenMask);
     this.sandCanvas.create();
-    drawBorder(this);
+    this.borderGfx = drawBorder(this, DAY_THEME);
 
     // Audio
     this.audio = new AudioManager();
@@ -40,7 +42,11 @@ export class GardenScene extends Phaser.Scene {
       this.toolbar.updateSoundButton(this.audio.anyLayerEnabled);
     });
 
-    this.toolbar = new Toolbar(this, (name) => this.handleToolSelect(name));
+    this.toolbar = new Toolbar(
+      this,
+      (name) => this.handleToolSelect(name),
+      () => this.toggleTheme()
+    );
     this.toolbar.create();
     this.toolbar.updateSoundButton(this.audio.anyLayerEnabled);
 
@@ -60,6 +66,24 @@ export class GardenScene extends Phaser.Scene {
     }
     this.activeTool = name;
     this.toolbar.setActiveTool(name);
+  }
+
+  toggleTheme() {
+    this.isNight = !this.isNight;
+    const theme = this.isNight ? NIGHT_THEME : DAY_THEME;
+
+    // Update sand colors (preserves rake pattern)
+    this.sandCanvas.setTheme(theme);
+    this.sandCanvas.sync();
+
+    // Redraw the border with new color
+    if (this.borderGfx) {
+      this.borderGfx.destroy();
+    }
+    this.borderGfx = drawBorder(this, theme);
+
+    // Update toolbar button icon
+    this.toolbar.setNightMode(this.isNight);
   }
 
   setupInput() {
