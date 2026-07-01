@@ -2,6 +2,8 @@
 
 A meditative pixel-art zen garden built with Phaser 3. Rake sand patterns, place rocks, shrubs, and teahouses, and enjoy ambient soundscapes.
 
+[Try Demo](https://zen-garden-ericl.fly.dev/)
+
 ## Getting Started
 
 ```bash
