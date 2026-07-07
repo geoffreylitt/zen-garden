@@ -18,13 +18,13 @@ export class ShrubTool {
     const sprite = this.scene.add.image(pointer.x, pointer.y, key);
     sprite.setScale(2);
     sprite.setInteractive({ draggable: true, useHandCursor: true });
-    this.scene.input.setDraggable(sprite);
     sprite.on('drag', (_p, dragX, dragY) => {
       if (dragY < SAND_H) {
         sprite.x = dragX;
         sprite.y = dragY;
       }
     });
+    this.scene.addPlaceableSprite(sprite);
 
     this.audio.playPlace();
   }

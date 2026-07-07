@@ -14,7 +14,8 @@ import { SoundDialog } from '../ui/SoundDialog.js';
 export class GardenScene extends Phaser.Scene {
   constructor() {
     super('GardenScene');
-    this.activeTool = 'RAKE';
+    this.activeTool = 'SELECT';
+    this.placeableSprites = [];
   }
 
   create() {
@@ -60,6 +61,19 @@ export class GardenScene extends Phaser.Scene {
     }
     this.activeTool = name;
     this.toolbar.setActiveTool(name);
+    this.updateSpriteDraggability();
+  }
+
+  addPlaceableSprite(sprite) {
+    this.placeableSprites.push(sprite);
+    this.updateSpriteDraggability();
+  }
+
+  updateSpriteDraggability() {
+    const canDrag = this.activeTool === 'SELECT';
+    this.placeableSprites.forEach((sprite) => {
+      this.input.setDraggable(sprite, canDrag);
+    });
   }
 
   setupInput() {
