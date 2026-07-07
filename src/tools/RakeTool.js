@@ -7,25 +7,42 @@ export class RakeTool {
     this.audio = audioManager;
     this.dragging = false;
     this.lastPointer = null;
+    this.lastTime = 0;
   }
 
   onDown(pointer) {
     if (pointer.y >= SAND_H) return;
     this.dragging = true;
     this.lastPointer = { x: pointer.x, y: pointer.y };
+    this.lastTime = performance.now();
     this.audio.startRake();
   }
 
   onMove(pointer) {
     if (!this.dragging) return;
     if (pointer.y >= SAND_H) return;
+
+    const now = performance.now();
+    const dt = (now - this.lastTime) / 1000;
+    const dx = pointer.x - this.lastPointer.x;
+    const dy = pointer.y - this.lastPointer.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+
+    if (dist >= 1) {
+      const speed = dt > 0 ? dist / dt : 0;
+      const angle = Math.atan2(dy, dx);
+      this.audio.updateRake(speed, angle);
+    }
+
     this.rakeStroke(this.lastPointer, { x: pointer.x, y: pointer.y });
     this.lastPointer = { x: pointer.x, y: pointer.y };
+    this.lastTime = now;
   }
 
   onUp() {
     this.dragging = false;
     this.lastPointer = null;
+    this.lastTime = 0;
     this.audio.stopRake();
   }
 
