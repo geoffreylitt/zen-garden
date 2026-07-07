@@ -15,3 +15,12 @@ export const TINE_SPACING = 3;
 
 // Pentatonic chime frequencies (C5-D6 range)
 export const CHIME_NOTES = [523.25, 587.33, 659.25, 783.99, 880.0, 1046.50, 1174.66];
+
+// Zen quotes shown on the loading screen
+export const ZEN_QUOTES = [
+  'In the beginner\'s mind there are many possibilities.',
+  'Sitting quietly, doing nothing, spring comes, and the grass grows by itself.',
+  'The obstacle is the path.',
+  'When you reach the top of the mountain, keep climbing.',
+  'Be still like a mountain and flow like a great river.',
+];
