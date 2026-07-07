@@ -1,4 +1,4 @@
-import { SAND_H, TINE_COUNT, TINE_SPACING, GROOVE_COLOR, RIDGE_COLOR } from '../constants.js';
+import { SAND_H, TINE_COUNT, TINE_SPACING, GROOVE_COLOR, RIDGE_COLOR, SAND_BASE } from '../constants.js';
 
 export class RakeTool {
   constructor(sandCanvas, gardenMask, audioManager) {
@@ -46,6 +46,14 @@ export class RakeTool {
     for (let s = 0; s <= steps; s++) {
       const cx = from.x + nx * s;
       const cy = from.y + ny * s;
+
+      for (let o = -halfWidth - 1; o <= halfWidth + 1; o++) {
+        const fx = Math.floor(cx + px * o);
+        const fy = Math.floor(cy + py * o);
+        if (this.gardenMask.isInGarden(fx, fy)) {
+          this.sandCanvas.setPixel(fx, fy, SAND_BASE);
+        }
+      }
 
       for (let t = 0; t < TINE_COUNT; t++) {
         const offset = -halfWidth + t * TINE_SPACING;
