@@ -22,7 +22,7 @@ export class GardenScene extends Phaser.Scene {
     this.gardenMask = new GardenMask();
     this.sandCanvas = new SandCanvas(this, this.gardenMask);
     this.sandCanvas.create();
-    drawBorder(this);
+    this.borderGraphics = drawBorder(this);
 
     // Audio
     this.audio = new AudioManager();
@@ -50,7 +50,7 @@ export class GardenScene extends Phaser.Scene {
 
   handleToolSelect(name) {
     if (name === 'CLEAR') {
-      this.sandCanvas.clear();
+      this.clearCanvas();
       return;
     }
     if (name === 'SOUND') {
@@ -60,6 +60,33 @@ export class GardenScene extends Phaser.Scene {
     }
     this.activeTool = name;
     this.toolbar.setActiveTool(name);
+  }
+
+  clearCanvas() {
+    this.sandCanvas.clear();
+
+    const toRemove = [];
+    this.children.each((child) => {
+      if (child.texture && child.texture.key) {
+        const key = child.texture.key;
+        if (
+          key.startsWith('rock_') ||
+          key.startsWith('shrub_') ||
+          key.startsWith('teahouse_')
+        ) {
+          toRemove.push({ child, key });
+        }
+      }
+    });
+    toRemove.forEach(({ child, key }) => {
+      child.destroy();
+      this.textures.remove(key);
+    });
+
+    if (this.borderGraphics) {
+      this.borderGraphics.destroy();
+      this.borderGraphics = drawBorder(this);
+    }
   }
 
   setupInput() {
