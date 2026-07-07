@@ -1,6 +1,9 @@
 import { WindLayer } from './WindLayer.js';
 import { ChimesLayer } from './ChimesLayer.js';
 import { CicadasLayer } from './CicadasLayer.js';
+import { StreamLayer } from './StreamLayer.js';
+import { ShishiOdoshiLayer } from './ShishiOdoshiLayer.js';
+import { TsukubaiLayer } from './TsukubaiLayer.js';
 import { RakeSound } from './RakeSound.js';
 import { PlaceSound } from './PlaceSound.js';
 
@@ -12,6 +15,9 @@ export class AudioManager {
       wind: new WindLayer(),
       chimes: new ChimesLayer(),
       cicadas: new CicadasLayer(),
+      stream: new StreamLayer(),
+      shishiodoshi: new ShishiOdoshiLayer(),
+      tsukubai: new TsukubaiLayer(),
     };
     this.rakeSound = new RakeSound();
     this.placeSound = new PlaceSound();
