@@ -1,6 +1,6 @@
 import { W, SAND_H } from '../constants.js';
 
-export function drawBorder(scene) {
+export function drawBorder(scene, theme) {
   const gfx = scene.add.graphics();
 
   const cx = W / 2;
@@ -24,7 +24,7 @@ export function drawBorder(scene) {
     });
   }
 
-  gfx.lineStyle(5, 0x888880, 1);
+  gfx.lineStyle(5, theme.borderColor, 1);
   gfx.beginPath();
   gfx.moveTo(points[0].x, points[0].y);
   for (let i = 1; i < points.length; i++) {
@@ -44,4 +44,6 @@ export function drawBorder(scene) {
       gfx.fillCircle(p.x + ox, p.y + oy, 1 + Math.random() * 1.5);
     }
   }
+
+  return gfx;
 }

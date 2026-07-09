@@ -2,12 +2,22 @@ import { W, SAND_H, TOOLBAR_H } from '../constants.js';
 
 const TOOL_NAMES = ['RAKE', 'ROCK', 'SHRUB', 'TEAHOUSE', 'CLEAR', 'SOUND'];
 
+// Night toggle button dimensions — sits right-aligned in the toolbar
+const NIGHT_BTN_W = 28;
+const NIGHT_BTN_H = TOOLBAR_H - 8;
+const NIGHT_BTN_X = W - NIGHT_BTN_W - 4;
+const NIGHT_BTN_Y = SAND_H + 4;
+
 export class Toolbar {
-  constructor(scene, onSelectTool) {
+  constructor(scene, onSelectTool, onToggleNight) {
     this.scene = scene;
     this.onSelectTool = onSelectTool;
+    this.onToggleNight = onToggleNight;
     this.activeTool = 'RAKE';
     this.buttons = [];
+    this.isNight = false;
+    this.nightBg = null;
+    this.nightLabel = null;
   }
 
   create() {
@@ -23,8 +33,10 @@ export class Toolbar {
       gfx.strokePath();
     }
 
-    const btnW = 70;
-    const gap = (W - TOOL_NAMES.length * btnW) / (TOOL_NAMES.length + 1);
+    // Regular tool buttons — leave room on the right for the night toggle
+    const availableW = W - NIGHT_BTN_W - 10;
+    const btnW = 62;
+    const gap = (availableW - TOOL_NAMES.length * btnW) / (TOOL_NAMES.length + 1);
 
     TOOL_NAMES.forEach((name, idx) => {
       const bx = gap + idx * (btnW + gap);
@@ -37,7 +49,7 @@ export class Toolbar {
 
       const label = this.scene.add.text(bx + btnW / 2, by + bh / 2, name, {
         fontFamily: 'monospace',
-        fontSize: '10px',
+        fontSize: '9px',
         color: isActive ? '#4a3728' : '#c8b898',
         fontStyle: 'bold',
       });
@@ -50,12 +62,35 @@ export class Toolbar {
 
       this.buttons.push({ name, bg, label, bx, by, btnW, bh, hitZone });
     });
+
+    // Night toggle button
+    this.nightBg = this.scene.add.graphics();
+    this.drawNightButton();
+
+    this.nightLabel = this.scene.add.text(
+      NIGHT_BTN_X + NIGHT_BTN_W / 2,
+      NIGHT_BTN_Y + NIGHT_BTN_H / 2,
+      '☀',
+      { fontFamily: 'monospace', fontSize: '12px', color: '#c8b898' }
+    );
+    this.nightLabel.setOrigin(0.5, 0.5);
+
+    const nightZone = this.scene.add
+      .zone(NIGHT_BTN_X + NIGHT_BTN_W / 2, NIGHT_BTN_Y + NIGHT_BTN_H / 2, NIGHT_BTN_W, NIGHT_BTN_H)
+      .setInteractive({ useHandCursor: true });
+    nightZone.on('pointerdown', () => this.onToggleNight());
   }
 
   drawButton(gfx, x, y, w, h, active) {
     gfx.clear();
     gfx.fillStyle(active ? 0xe8dcbc : 0x5c4433, 1);
     gfx.fillRoundedRect(x, y, w, h, 3);
+  }
+
+  drawNightButton() {
+    this.nightBg.clear();
+    this.nightBg.fillStyle(this.isNight ? 0x2a3550 : 0x5c4433, 1);
+    this.nightBg.fillRoundedRect(NIGHT_BTN_X, NIGHT_BTN_Y, NIGHT_BTN_W, NIGHT_BTN_H, 3);
   }
 
   setActiveTool(name) {
@@ -66,6 +101,12 @@ export class Toolbar {
       this.drawButton(btn.bg, btn.bx, btn.by, btn.btnW, btn.bh, isActive);
       btn.label.setColor(isActive ? '#4a3728' : '#c8b898');
     });
+  }
+
+  setNightMode(isNight) {
+    this.isNight = isNight;
+    this.drawNightButton();
+    this.nightLabel.setText(isNight ? '🌙' : '☀');
   }
 
   updateSoundButton(anyEnabled) {
