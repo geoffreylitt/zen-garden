@@ -2,10 +2,11 @@ import { SAND_H } from '../constants.js';
 import { createRockTexture } from '../graphics/sprites/RockSprite.js';
 
 export class RockTool {
-  constructor(scene, gardenMask, audioManager) {
+  constructor(scene, gardenMask, audioManager, onPlace = null) {
     this.scene = scene;
     this.gardenMask = gardenMask;
     this.audio = audioManager;
+    this.onPlace = onPlace;
   }
 
   onDown(pointer) {
@@ -17,6 +18,7 @@ export class RockTool {
     const key = createRockTexture(this.scene);
     const sprite = this.scene.add.image(pointer.x, pointer.y, key);
     sprite.setScale(2);
+    sprite.setDepth(5);
     sprite.setInteractive({ draggable: true, useHandCursor: true });
     this.scene.input.setDraggable(sprite);
     sprite.on('drag', (_p, dragX, dragY) => {
@@ -27,5 +29,6 @@ export class RockTool {
     });
 
     this.audio.playPlace();
+    if (this.onPlace) this.onPlace(sprite, 14);
   }
 }
