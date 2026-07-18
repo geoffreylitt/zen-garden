@@ -7,6 +7,7 @@ export class RakeTool {
     this.audio = audioManager;
     this.dragging = false;
     this.lastPointer = null;
+    this.onRake = null; // optional (distance: number) => void callback
   }
 
   onDown(pointer) {
@@ -64,5 +65,6 @@ export class RakeTool {
       }
     }
     this.sandCanvas.dirty = true;
+    if (this.onRake) this.onRake(dist);
   }
 }

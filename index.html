@@ -123,6 +123,109 @@
     .sound-slider::-moz-range-thumb:hover {
       background: #e8dcbc;
     }
+
+    /* Daily Challenge Panel */
+    #challenge-panel {
+      position: fixed;
+      top: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #4a3728;
+      border: 2px solid #6b5340;
+      border-radius: 8px;
+      min-width: 220px;
+      max-width: 280px;
+      color: #e8dcbc;
+      font-family: monospace;
+      font-size: 11px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.45);
+      z-index: 500;
+      user-select: none;
+    }
+
+    #challenge-panel.challenge-completed {
+      border-color: #8a9a6a;
+    }
+
+    #challenge-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      cursor: pointer;
+      border-bottom: 1px solid #6b5340;
+      font-weight: bold;
+      letter-spacing: 0.4px;
+    }
+
+    #challenge-header:hover {
+      background: rgba(255,255,255,0.04);
+    }
+
+    #challenge-icon {
+      font-size: 13px;
+    }
+
+    #challenge-title {
+      flex: 1;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #c8b898;
+    }
+
+    #challenge-toggle-btn {
+      color: #c8b898;
+      font-size: 16px;
+      line-height: 1;
+    }
+
+    #challenge-body {
+      padding: 8px 10px 10px;
+    }
+
+    #challenge-name {
+      font-weight: bold;
+      font-size: 12px;
+      margin-bottom: 3px;
+    }
+
+    #challenge-desc {
+      color: #c8b898;
+      font-size: 10px;
+      margin-bottom: 8px;
+      line-height: 1.4;
+    }
+
+    #challenge-bar-wrap {
+      background: #3a2a1e;
+      border-radius: 3px;
+      height: 6px;
+      overflow: hidden;
+      margin-bottom: 4px;
+    }
+
+    #challenge-bar {
+      height: 100%;
+      width: 0%;
+      background: #a07850;
+      border-radius: 3px;
+      transition: width 0.3s ease;
+    }
+
+    #challenge-bar.challenge-bar-complete {
+      background: #8a9a6a;
+    }
+
+    #challenge-progress-text {
+      color: #c8b898;
+      font-size: 10px;
+    }
+
+    #challenge-progress-text.challenge-complete-text {
+      color: #b8c898;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
