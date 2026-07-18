@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { SAND_H } from '../constants.js';
+import { W, SAND_H } from '../constants.js';
 import { GardenMask } from '../graphics/GardenMask.js';
 import { SandCanvas } from '../graphics/SandCanvas.js';
 import { drawBorder } from '../graphics/BorderRenderer.js';
@@ -58,8 +58,23 @@ export class GardenScene extends Phaser.Scene {
       this.soundDialog.open();
       return;
     }
+    if (name === 'SAVE') {
+      this.saveAsImage();
+      return;
+    }
     this.activeTool = name;
     this.toolbar.setActiveTool(name);
+  }
+
+  saveAsImage() {
+    const tmp = document.createElement('canvas');
+    tmp.width = W;
+    tmp.height = SAND_H;
+    tmp.getContext('2d').drawImage(this.game.canvas, 0, 0, W, SAND_H, 0, 0, W, SAND_H);
+    const a = document.createElement('a');
+    a.href = tmp.toDataURL('image/png');
+    a.download = 'zen-garden.png';
+    a.click();
   }
 
   setupInput() {

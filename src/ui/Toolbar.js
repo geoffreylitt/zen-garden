@@ -1,6 +1,6 @@
 import { W, SAND_H, TOOLBAR_H } from '../constants.js';
 
-const TOOL_NAMES = ['RAKE', 'ROCK', 'SHRUB', 'TEAHOUSE', 'CLEAR', 'SOUND'];
+const TOOL_NAMES = ['RAKE', 'ROCK', 'SHRUB', 'TEAHOUSE', 'CLEAR', 'SOUND', 'SAVE'];
 
 export class Toolbar {
   constructor(scene, onSelectTool) {
@@ -23,7 +23,7 @@ export class Toolbar {
       gfx.strokePath();
     }
 
-    const btnW = 70;
+    const btnW = Math.min(70, Math.floor(W / TOOL_NAMES.length) - 8);
     const gap = (W - TOOL_NAMES.length * btnW) / (TOOL_NAMES.length + 1);
 
     TOOL_NAMES.forEach((name, idx) => {
@@ -61,7 +61,7 @@ export class Toolbar {
   setActiveTool(name) {
     this.activeTool = name;
     this.buttons.forEach((btn) => {
-      if (btn.name === 'SOUND') return;
+      if (btn.name === 'SOUND' || btn.name === 'SAVE') return;
       const isActive = btn.name === this.activeTool;
       this.drawButton(btn.bg, btn.bx, btn.by, btn.btnW, btn.bh, isActive);
       btn.label.setColor(isActive ? '#4a3728' : '#c8b898');
