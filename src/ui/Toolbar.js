@@ -1,6 +1,9 @@
-import { W, SAND_H, TOOLBAR_H } from '../constants.js';
+import { W, SAND_H, TOOLBAR_H, SAND_PALETTES } from '../constants.js';
 
-const TOOL_NAMES = ['RAKE', 'ROCK', 'SHRUB', 'TEAHOUSE', 'CLEAR', 'SOUND'];
+const TOOL_NAMES = ['RAKE', 'ROCK', 'SHRUB', 'TEAHOUSE', 'CLEAR', 'SOUND', 'SAND'];
+
+// Slightly narrower buttons to accommodate 7 items
+const BTN_W = 60;
 
 export class Toolbar {
   constructor(scene, onSelectTool) {
@@ -23,19 +26,18 @@ export class Toolbar {
       gfx.strokePath();
     }
 
-    const btnW = 70;
-    const gap = (W - TOOL_NAMES.length * btnW) / (TOOL_NAMES.length + 1);
+    const gap = (W - TOOL_NAMES.length * BTN_W) / (TOOL_NAMES.length + 1);
 
     TOOL_NAMES.forEach((name, idx) => {
-      const bx = gap + idx * (btnW + gap);
+      const bx = gap + idx * (BTN_W + gap);
       const by = y + 4;
       const bh = TOOLBAR_H - 8;
 
       const bg = this.scene.add.graphics();
       const isActive = name === this.activeTool;
-      this.drawButton(bg, bx, by, btnW, bh, isActive);
+      this.drawButton(bg, bx, by, BTN_W, bh, isActive);
 
-      const label = this.scene.add.text(bx + btnW / 2, by + bh / 2, name, {
+      const label = this.scene.add.text(bx + BTN_W / 2, by + bh / 2, name, {
         fontFamily: 'monospace',
         fontSize: '10px',
         color: isActive ? '#4a3728' : '#c8b898',
@@ -43,12 +45,12 @@ export class Toolbar {
       });
       label.setOrigin(0.5, 0.5);
 
-      const hitZone = this.scene.add.zone(bx + btnW / 2, by + bh / 2, btnW, bh)
+      const hitZone = this.scene.add.zone(bx + BTN_W / 2, by + bh / 2, BTN_W, bh)
         .setInteractive({ useHandCursor: true });
 
       hitZone.on('pointerdown', () => this.onSelectTool(name));
 
-      this.buttons.push({ name, bg, label, bx, by, btnW, bh, hitZone });
+      this.buttons.push({ name, bg, label, bx, by, btnW: BTN_W, bh, hitZone });
     });
   }
 
@@ -61,7 +63,7 @@ export class Toolbar {
   setActiveTool(name) {
     this.activeTool = name;
     this.buttons.forEach((btn) => {
-      if (btn.name === 'SOUND') return;
+      if (btn.name === 'SOUND' || btn.name === 'SAND') return;
       const isActive = btn.name === this.activeTool;
       this.drawButton(btn.bg, btn.bx, btn.by, btn.btnW, btn.bh, isActive);
       btn.label.setColor(isActive ? '#4a3728' : '#c8b898');
@@ -77,5 +79,13 @@ export class Toolbar {
       soundBtn.bx, soundBtn.by, soundBtn.btnW, soundBtn.bh, 3
     );
     soundBtn.label.setColor(anyEnabled ? '#e8dcbc' : '#886655');
+  }
+
+  updateSandButton(paletteKey) {
+    const sandBtn = this.buttons.find(b => b.name === 'SAND');
+    if (!sandBtn) return;
+    const palette = SAND_PALETTES[paletteKey];
+    const label = palette ? palette.label : 'SAND';
+    sandBtn.label.setText(label);
   }
 }
